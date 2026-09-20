@@ -11,7 +11,7 @@ from lib.semantic_search import load_movies
 
 
 LLM_MODEL = os.environ.get(
-    "OPENROUTER_MODEL", "google/gemma-4-26b-a4b-it:free"
+    "OPENROUTER_MODEL", "liquid/lfm-2.5-2.6b:free"
 )
 
 
@@ -260,8 +260,9 @@ def main() -> None:
                 )
                 query = enhanced_query
             hybrid_search = HybridSearch(load_movies())
-            search_limit = args.limit * 5 if args.rerank_method else args.limit
-            results = hybrid_search.rrf_search(query, args.k, search_limit)
+            results = hybrid_search.rrf_search(query, args.k, args.limit)
+            if args.rerank_method:
+                results = results[: args.limit * 5]
             if args.rerank_method:
                 print(
                     f"Re-ranking top {args.limit} results using "

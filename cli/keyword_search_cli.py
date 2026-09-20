@@ -1,6 +1,10 @@
 import argparse
 import json
 import string
+from nltk.stem import PorterStemmer
+
+
+stemmer = PorterStemmer()
 
 
 def preprocess(text: str) -> list[str]:
@@ -11,11 +15,13 @@ def preprocess(text: str) -> list[str]:
 def matches(query: str, title: str, stop_words: list[str]) -> bool:
     query_tokens = [token for token in preprocess(query) if token not in stop_words]
     title_tokens = [token for token in preprocess(title) if token not in stop_words]
+    query_stems = [stemmer.stem(token) for token in query_tokens]
+    title_stems = [stemmer.stem(token) for token in title_tokens]
 
     return any(
-        query_token in title_token
-        for query_token in query_tokens
-        for title_token in title_tokens
+        query_stem in title_stem
+        for query_stem in query_stems
+        for title_stem in title_stems
     )
 
 

@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import time
 
@@ -138,6 +139,55 @@ Score:'''
     raise RuntimeError("Unable to get a valid rerank score")
 
 
+def rerank_batch(query: str, results: list[dict]) -> list[dict]:
+    load_dotenv()
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENROUTER_API_KEY environment variable not set")
+
+    doc_list = "\n".join(
+        f"ID: {result['document']['id']} - {result['document']['title']}: "
+        f"{result['document']['description'][:300]}"
+        for result in results
+    )
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1", api_key=api_key, timeout=30.0
+    )
+    prompt = f'''Rank the movies listed below by relevance to the following search query.
+
+Query: "{query}"
+
+Movies:
+{doc_list}
+
+Return the movie IDs in order of relevance, best match first.
+
+Your response must be a raw JSON array of integers.
+Do not wrap the JSON in Markdown. Do not use a ```json code block.
+Do not include any explanatory text.
+
+Ranking:'''
+    for attempt in range(3):
+        try:
+            response = client.chat.completions.create(
+                model="openrouter/free",
+                messages=[{"role": "user", "content": prompt}],
+            )
+            ranked_ids = json.loads(response.choices[0].message.content.strip())
+            ranked_ids = [int(document_id) for document_id in ranked_ids]
+            rank_map = {document_id: rank for rank, document_id in enumerate(ranked_ids, 1)}
+            for result in results:
+                result["rerank_rank"] = rank_map.get(
+                    result["document"]["id"], len(results) + 1
+                )
+            return sorted(results, key=lambda result: result["rerank_rank"])
+        except Exception:
+            if attempt == 2:
+                raise
+        time.sleep(3)
+    raise RuntimeError("Unable to get valid batch rerank results")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hybrid Search CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -164,7 +214,9 @@ def main() -> None:
         help="Query enhancement method",
     )
     rrf_parser.add_argument(
-        "--rerank-method", choices=["individual"], help="Reranking method"
+        "--rerank-method",
+        choices=["individual", "batch"],
+        help="Reranking method",
     )
 
     args = parser.parse_args()
@@ -203,18 +255,22 @@ def main() -> None:
                 )
                 query = enhanced_query
             hybrid_search = HybridSearch(load_movies())
-            search_limit = args.limit * 5 if args.rerank_method == "individual" else args.limit
+            search_limit = args.limit * 5 if args.rerank_method else args.limit
             results = hybrid_search.rrf_search(query, args.k, search_limit)
-            if args.rerank_method == "individual":
+            if args.rerank_method:
                 print(
-                    f"Re-ranking top {args.limit} results using individual method..."
+                    f"Re-ranking top {args.limit} results using "
+                    f"{args.rerank_method} method..."
                 )
-                for result in results:
-                    result["rerank_score"] = rerank_document(query, result)
-                    time.sleep(3)
-                results.sort(
-                    key=lambda result: result["rerank_score"], reverse=True
-                )
+                if args.rerank_method == "individual":
+                    for result in results:
+                        result["rerank_score"] = rerank_document(query, result)
+                        time.sleep(3)
+                    results.sort(
+                        key=lambda result: result["rerank_score"], reverse=True
+                    )
+                else:
+                    results = rerank_batch(query, results)
             results = results[: args.limit]
             print(
                 f"Reciprocal Rank Fusion Results for '{query}' (k={args.k}):"
@@ -224,6 +280,8 @@ def main() -> None:
                 print(f"{i}. {document['title']}")
                 if args.rerank_method == "individual":
                     print(f"   Re-rank Score: {result['rerank_score']:.3f}/10")
+                elif args.rerank_method == "batch":
+                    print(f"   Re-rank Rank: {result['rerank_rank']}")
                 print(f"  RRF Score: {result['rrf']:.3f}")
                 print(
                     f"  BM25 Rank: {result['bm25_rank']}, "

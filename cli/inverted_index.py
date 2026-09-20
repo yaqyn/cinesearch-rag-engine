@@ -56,3 +56,9 @@ class InvertedIndex:
             pickle.dump(self.index, file)
         with open("cache/docmap.pkl", "wb") as file:
             pickle.dump(self.docmap, file)
+
+    def load(self):
+        with open("cache/index.pkl", "rb") as file:
+            self.index = pickle.load(file)
+        with open("cache/docmap.pkl", "rb") as file:
+            self.docmap = pickle.load(file)

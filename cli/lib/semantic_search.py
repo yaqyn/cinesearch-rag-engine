@@ -3,6 +3,7 @@ import os
 import re
 
 import numpy as np
+import torch
 from sentence_transformers import SentenceTransformer
 
 
@@ -142,8 +143,9 @@ class ChunkedSemanticSearch(SemanticSearch):
                     }
                 )
 
+        torch.set_num_threads(os.cpu_count() or 1)
         self.chunk_embeddings = self.model.encode(
-            all_chunks, batch_size=128, show_progress_bar=True
+            all_chunks, batch_size=256, show_progress_bar=True
         )
         self.chunk_metadata = chunk_metadata
         os.makedirs("cache", exist_ok=True)

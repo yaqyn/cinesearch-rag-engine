@@ -6,6 +6,8 @@ import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer
 
+from lib.search_utils import format_search_result
+
 
 def cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
     dot_product = np.dot(vec1, vec2)
@@ -169,6 +171,44 @@ class ChunkedSemanticSearch(SemanticSearch):
                 self.chunk_metadata = json.load(file)["chunks"]
             return self.chunk_embeddings
         return self.build_chunk_embeddings(documents)
+
+    def search_chunks(self, query: str, limit: int = 10) -> list[dict]:
+        query_embedding = self.generate_embedding(query)
+        chunk_scores = []
+        for metadata, embedding in zip(self.chunk_metadata, self.chunk_embeddings):
+            chunk_scores.append(
+                {
+                    "chunk_idx": metadata["chunk_idx"],
+                    "movie_idx": metadata["movie_idx"],
+                    "score": cosine_similarity(query_embedding, embedding),
+                }
+            )
+
+        movie_scores = {}
+        for chunk_score in chunk_scores:
+            movie_idx = chunk_score["movie_idx"]
+            if (
+                movie_idx not in movie_scores
+                or chunk_score["score"] > movie_scores[movie_idx]["score"]
+            ):
+                movie_scores[movie_idx] = chunk_score
+
+        ranked_movies = sorted(
+            movie_scores.values(), key=lambda result: result["score"], reverse=True
+        )[:limit]
+        results = []
+        for movie_score in ranked_movies:
+            document = self.documents[movie_score["movie_idx"]]
+            results.append(
+                format_search_result(
+                    document["id"],
+                    document["title"],
+                    document["description"],
+                    movie_score["score"],
+                    movie_score,
+                )
+            )
+        return results
 
 
 def verify_model() -> None:

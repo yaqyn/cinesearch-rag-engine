@@ -21,6 +21,11 @@ def main() -> None:
     embed_parser.add_argument("text", type=str)
     subparsers.add_parser("verify_embeddings", help="Verify movie embeddings")
     subparsers.add_parser("embed_chunks", help="Generate chunked movie embeddings")
+    search_chunked_parser = subparsers.add_parser(
+        "search_chunked", help="Search using chunked movie embeddings"
+    )
+    search_chunked_parser.add_argument("query", type=str)
+    search_chunked_parser.add_argument("--limit", type=int, default=5)
     query_parser = subparsers.add_parser("embed_query", help="Generate a query embedding")
     query_parser.add_argument("query", type=str)
     search_parser = subparsers.add_parser("search", help="Search movies semantically")
@@ -50,6 +55,14 @@ def main() -> None:
             semantic_search = ChunkedSemanticSearch()
             embeddings = semantic_search.load_or_create_chunk_embeddings(documents)
             print(f"Generated {len(embeddings)} chunked embeddings")
+        case "search_chunked":
+            documents = load_movies()
+            semantic_search = ChunkedSemanticSearch()
+            semantic_search.load_or_create_chunk_embeddings(documents)
+            results = semantic_search.search_chunks(args.query, args.limit)
+            for i, result in enumerate(results, start=1):
+                print(f"\n{i}. {result['title']} (score: {result['score']:.4f})")
+                print(f"   {result['document']}...")
         case "embed_query":
             embed_query_text(args.query)
         case "search":

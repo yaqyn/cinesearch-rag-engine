@@ -1,5 +1,6 @@
 import argparse
 import os
+import time
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -97,6 +98,46 @@ User query: "{query}"''',
     return response.choices[0].message.content.strip()
 
 
+def rerank_document(query: str, result: dict) -> float:
+    load_dotenv()
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENROUTER_API_KEY environment variable not set")
+
+    document = result["document"]
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1", api_key=api_key, timeout=30.0
+    )
+    prompt = f'''Rate how well this movie matches the search query.
+
+Query: "{query}"
+Movie: {document.get("title", "")} - {document.get("description", "")}
+
+Consider:
+- Direct relevance to query
+- User intent (what they're looking for)
+- Content appropriateness
+
+Rate 0-10 (10 = perfect match).
+Output ONLY the number in your response, no other text or explanation.
+
+Score:'''
+    for attempt in range(3):
+        try:
+            response = client.chat.completions.create(
+                model="openrouter/free",
+                messages=[{"role": "user", "content": prompt}],
+            )
+            score = float(response.choices[0].message.content.strip())
+            if 0 <= score <= 10:
+                return score
+        except Exception:
+            if attempt == 2:
+                raise
+        time.sleep(3)
+    raise RuntimeError("Unable to get a valid rerank score")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hybrid Search CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -121,6 +162,9 @@ def main() -> None:
         type=str,
         choices=["spell", "rewrite", "expand"],
         help="Query enhancement method",
+    )
+    rrf_parser.add_argument(
+        "--rerank-method", choices=["individual"], help="Reranking method"
     )
 
     args = parser.parse_args()
@@ -159,18 +203,33 @@ def main() -> None:
                 )
                 query = enhanced_query
             hybrid_search = HybridSearch(load_movies())
-            results = hybrid_search.rrf_search(query, args.k, args.limit)[
-                : args.limit
-            ]
+            search_limit = args.limit * 5 if args.rerank_method == "individual" else args.limit
+            results = hybrid_search.rrf_search(query, args.k, search_limit)
+            if args.rerank_method == "individual":
+                print(
+                    f"Re-ranking top {args.limit} results using individual method..."
+                )
+                for result in results:
+                    result["rerank_score"] = rerank_document(query, result)
+                    time.sleep(3)
+                results.sort(
+                    key=lambda result: result["rerank_score"], reverse=True
+                )
+            results = results[: args.limit]
+            print(
+                f"Reciprocal Rank Fusion Results for '{query}' (k={args.k}):"
+            )
             for i, result in enumerate(results, start=1):
                 document = result["document"]
                 print(f"{i}. {document['title']}")
+                if args.rerank_method == "individual":
+                    print(f"   Re-rank Score: {result['rerank_score']:.3f}/10")
                 print(f"  RRF Score: {result['rrf']:.3f}")
                 print(
                     f"  BM25 Rank: {result['bm25_rank']}, "
                     f"Semantic Rank: {result['semantic_rank']}"
                 )
-                print(f"  {document['description'][:100]}...")
+                print(f"   {document['description'][:100]}...")
         case _:
             parser.print_help()
 

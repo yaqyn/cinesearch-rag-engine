@@ -7,6 +7,8 @@ from collections import Counter
 
 from nltk.stem import PorterStemmer
 
+from constants import BM25_K1
+
 
 stemmer = PorterStemmer()
 translation_table = str.maketrans("", "", string.punctuation)
@@ -66,6 +68,10 @@ class InvertedIndex:
             / (document_frequency + 0.5)
             + 1
         )
+
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1):
+        term_frequency = self.get_tf(doc_id, term)
+        return (term_frequency * (k1 + 1)) / (term_frequency + k1)
 
     def build(self):
         for movie in load_movies():

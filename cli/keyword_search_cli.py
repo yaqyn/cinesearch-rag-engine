@@ -1,4 +1,6 @@
 import argparse
+import math
+
 from inverted_index import InvertedIndex, tokenize_term, tokenize_text
 
 
@@ -18,6 +20,8 @@ def main() -> None:
     tf_parser = subparsers.add_parser("tf", help="Get a term frequency")
     tf_parser.add_argument("doc_id", type=int)
     tf_parser.add_argument("term", type=str)
+    idf_parser = subparsers.add_parser("idf", help="Get inverse document frequency")
+    idf_parser.add_argument("term", type=str)
 
     args = parser.parse_args()
 
@@ -52,6 +56,16 @@ def main() -> None:
             index.load()
             term = tokenize_term(args.term)
             print(index.get_tf(args.doc_id, term))
+        case "idf":
+            index = InvertedIndex()
+            index.load()
+            term = tokenize_term(args.term)
+            total_doc_count = len(index.docmap)
+            term_match_doc_count = len(index.get_documents(term))
+            idf = math.log(
+                (total_doc_count + 1) / (term_match_doc_count + 1)
+            )
+            print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
         case _:
             parser.print_help()
 

@@ -21,12 +21,22 @@ def load_movies() -> list[dict]:
         return json.load(file)["movies"]
 
 
-def chunk_text(text: str, chunk_size: int) -> list[str]:
+def chunk_text(text: str, chunk_size: int, overlap: int = 0) -> list[str]:
+    if chunk_size <= 0:
+        raise ValueError("chunk size must be greater than zero")
+    if overlap < 0 or overlap >= chunk_size:
+        raise ValueError("overlap must be non-negative and smaller than chunk size")
+
     words = text.split()
-    return [
-        " ".join(words[index : index + chunk_size])
-        for index in range(0, len(words), chunk_size)
-    ]
+    chunks = []
+    start = 0
+    step = chunk_size - overlap
+    while start < len(words):
+        chunks.append(" ".join(words[start : start + chunk_size]))
+        if start + chunk_size >= len(words):
+            break
+        start += step
+    return chunks
 
 
 class SemanticSearch:

@@ -1,7 +1,38 @@
 import argparse
+import os
+
+from dotenv import load_dotenv
+from openai import OpenAI
 
 from lib.hybrid_search import HybridSearch, normalize_scores
 from lib.semantic_search import load_movies
+
+
+def enhance_query_with_spelling(query: str) -> str:
+    load_dotenv()
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENROUTER_API_KEY environment variable not set")
+
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=api_key,
+    )
+    response = client.chat.completions.create(
+        model="openrouter/free",
+        messages=[
+            {
+                "role": "user",
+                "content": f'''Fix any spelling errors in the user-provided movie search query below.
+Correct only clear, high-confidence typos. Do not rewrite, add, remove, or reorder words.
+Preserve punctuation and capitalization unless a change is required for a typo fix.
+If there are no spelling errors, or if you're unsure, output the original query unchanged.
+Output only the final query text, nothing else.
+User query: "{query}"''',
+            }
+        ],
+    )
+    return response.choices[0].message.content.strip()
 
 
 def main() -> None:
@@ -23,6 +54,9 @@ def main() -> None:
     rrf_parser.add_argument("query", type=str)
     rrf_parser.add_argument("-k", type=int, default=60)
     rrf_parser.add_argument("--limit", type=int, default=5)
+    rrf_parser.add_argument(
+        "--enhance", type=str, choices=["spell"], help="Query enhancement method"
+    )
 
     args = parser.parse_args()
 
@@ -45,8 +79,16 @@ def main() -> None:
                 )
                 print(f"  {document['description'][:100]}...")
         case "rrf-search":
+            query = args.query
+            if args.enhance == "spell":
+                enhanced_query = enhance_query_with_spelling(query)
+                print(
+                    f"Enhanced query ({args.enhance}): "
+                    f"'{query}' -> '{enhanced_query}'\n"
+                )
+                query = enhanced_query
             hybrid_search = HybridSearch(load_movies())
-            results = hybrid_search.rrf_search(args.query, args.k, args.limit)[
+            results = hybrid_search.rrf_search(query, args.k, args.limit)[
                 : args.limit
             ]
             for i, result in enumerate(results, start=1):

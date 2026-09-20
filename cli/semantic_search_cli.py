@@ -1,6 +1,13 @@
 import argparse
 
-from lib.semantic_search import embed_query_text, embed_text, verify_embeddings, verify_model
+from lib.semantic_search import (
+    SemanticSearch,
+    embed_query_text,
+    embed_text,
+    load_movies,
+    verify_embeddings,
+    verify_model,
+)
 
 
 def main() -> None:
@@ -12,6 +19,9 @@ def main() -> None:
     subparsers.add_parser("verify_embeddings", help="Verify movie embeddings")
     query_parser = subparsers.add_parser("embed_query", help="Generate a query embedding")
     query_parser.add_argument("query", type=str)
+    search_parser = subparsers.add_parser("search", help="Search movies semantically")
+    search_parser.add_argument("query", type=str)
+    search_parser.add_argument("--limit", type=int, default=5)
     args = parser.parse_args()
 
     match args.command:
@@ -23,6 +33,14 @@ def main() -> None:
             verify_embeddings()
         case "embed_query":
             embed_query_text(args.query)
+        case "search":
+            semantic_search = SemanticSearch()
+            documents = load_movies()
+            semantic_search.load_or_create_embeddings(documents)
+            results = semantic_search.search(args.query, args.limit)
+            for result_number, result in enumerate(results, start=1):
+                print(f"{result_number}. {result['title']} (score: {result['score']:.4f})")
+                print(f"  {result['description']}")
         case _:
             parser.print_help()
 

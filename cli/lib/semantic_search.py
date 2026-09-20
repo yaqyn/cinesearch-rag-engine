@@ -5,6 +5,22 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 
 
+def cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
+    dot_product = np.dot(vec1, vec2)
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+
+    return dot_product / (norm1 * norm2)
+
+
+def load_movies() -> list[dict]:
+    with open("data/movies.json") as file:
+        return json.load(file)["movies"]
+
+
 class SemanticSearch:
     def __init__(self):
         self.model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
@@ -39,6 +55,25 @@ class SemanticSearch:
                 return self.embeddings
         return self.build_embeddings(documents)
 
+    def search(self, query, limit):
+        if self.embeddings is None:
+            raise ValueError("No embeddings loaded. Call `load_or_create_embeddings` first.")
+
+        query_embedding = self.generate_embedding(query)
+        scored_documents = [
+            (cosine_similarity(query_embedding, embedding), document)
+            for embedding, document in zip(self.embeddings, self.documents)
+        ]
+        scored_documents.sort(key=lambda item: item[0], reverse=True)
+        return [
+            {
+                "score": score,
+                "title": document["title"],
+                "description": document["description"],
+            }
+            for score, document in scored_documents[:limit]
+        ]
+
 
 def verify_model() -> None:
     semantic_search = SemanticSearch()
@@ -63,8 +98,7 @@ def embed_query_text(query) -> None:
 
 
 def verify_embeddings() -> None:
-    with open("data/movies.json") as file:
-        documents = json.load(file)["movies"]
+    documents = load_movies()
     semantic_search = SemanticSearch()
     embeddings = semantic_search.load_or_create_embeddings(documents)
     print(f"Number of docs:   {len(documents)}")

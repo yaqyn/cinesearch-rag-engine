@@ -54,6 +54,14 @@ def embed_text(text) -> None:
     print(f"Dimensions: {embedding.shape[0]}")
 
 
+def embed_query_text(query) -> None:
+    semantic_search = SemanticSearch()
+    embedding = semantic_search.generate_embedding(query)
+    print(f"Query: {query}")
+    print(f"First 3 dimensions: {embedding[:3]}")
+    print(f"Shape: {embedding.shape}")
+
+
 def verify_embeddings() -> None:
     with open("data/movies.json") as file:
         documents = json.load(file)["movies"]

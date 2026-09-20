@@ -69,6 +69,34 @@ User query: "{query}"''',
     return response.choices[0].message.content.strip()
 
 
+def expand_query(query: str) -> str:
+    load_dotenv()
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENROUTER_API_KEY environment variable not set")
+
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=api_key,
+    )
+    response = client.chat.completions.create(
+        model="openrouter/free",
+        messages=[
+            {
+                "role": "user",
+                "content": f'''Expand the user-provided movie search query below with related terms.
+
+Add synonyms and related concepts that might appear in movie descriptions.
+Keep expansions relevant and focused.
+Output only the additional terms; they will be appended to the original query.
+
+User query: "{query}"''',
+            }
+        ],
+    )
+    return response.choices[0].message.content.strip()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hybrid Search CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -91,7 +119,7 @@ def main() -> None:
     rrf_parser.add_argument(
         "--enhance",
         type=str,
-        choices=["spell", "rewrite"],
+        choices=["spell", "rewrite", "expand"],
         help="Query enhancement method",
     )
 
@@ -117,11 +145,14 @@ def main() -> None:
                 print(f"  {document['description'][:100]}...")
         case "rrf-search":
             query = args.query
-            if args.enhance in ("spell", "rewrite"):
+            if args.enhance in ("spell", "rewrite", "expand"):
                 if args.enhance == "spell":
                     enhanced_query = enhance_query_with_spelling(query)
-                else:
+                elif args.enhance == "rewrite":
                     enhanced_query = rewrite_query(query)
+                else:
+                    expansion = expand_query(query)
+                    enhanced_query = f"{query} {expansion}"
                 print(
                     f"Enhanced query ({args.enhance}): "
                     f"'{query}' -> '{enhanced_query}'\n"

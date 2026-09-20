@@ -1,5 +1,5 @@
 import argparse
-from inverted_index import InvertedIndex, tokenize_text
+from inverted_index import InvertedIndex, tokenize_term, tokenize_text
 
 
 def build_command() -> None:
@@ -15,6 +15,9 @@ def main() -> None:
     search_parser = subparsers.add_parser("search", help="Search movies using keywords")
     search_parser.add_argument("query", type=str, help="Search query")
     subparsers.add_parser("build", help="Build the inverted index")
+    tf_parser = subparsers.add_parser("tf", help="Get a term frequency")
+    tf_parser.add_argument("doc_id", type=int)
+    tf_parser.add_argument("term", type=str)
 
     args = parser.parse_args()
 
@@ -44,6 +47,11 @@ def main() -> None:
                 print(f"{result_number}. {movie['title']} (ID: {movie['id']})")
         case "build":
             build_command()
+        case "tf":
+            index = InvertedIndex()
+            index.load()
+            term = tokenize_term(args.term)
+            print(index.get_tf(args.doc_id, term))
         case _:
             parser.print_help()
 

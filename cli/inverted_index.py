@@ -2,6 +2,7 @@ import json
 import os
 import pickle
 import string
+from collections import Counter
 
 from nltk.stem import PorterStemmer
 
@@ -31,17 +32,30 @@ def tokenize_text(text: str) -> list[str]:
     return [stemmer.stem(token) for token in tokens if token not in stop_words]
 
 
+def tokenize_term(term: str) -> str:
+    tokens = tokenize_text(term)
+    if len(tokens) != 1:
+        raise ValueError("term must tokenize to exactly one token")
+    return tokens[0]
+
+
 class InvertedIndex:
     def __init__(self):
         self.index = {}
         self.docmap = {}
+        self.term_frequencies = {}
 
     def __add_document(self, doc_id, text):
-        for token in tokenize_text(text):
+        tokens = tokenize_text(text)
+        self.term_frequencies[doc_id] = Counter(tokens)
+        for token in tokens:
             self.index.setdefault(token, set()).add(doc_id)
 
     def get_documents(self, term):
         return sorted(self.index.get(term, set()))
+
+    def get_tf(self, doc_id, term):
+        return self.term_frequencies.get(doc_id, Counter()).get(term, 0)
 
     def build(self):
         for movie in load_movies():
@@ -56,9 +70,13 @@ class InvertedIndex:
             pickle.dump(self.index, file)
         with open("cache/docmap.pkl", "wb") as file:
             pickle.dump(self.docmap, file)
+        with open("cache/term_frequencies.pkl", "wb") as file:
+            pickle.dump(self.term_frequencies, file)
 
     def load(self):
         with open("cache/index.pkl", "rb") as file:
             self.index = pickle.load(file)
         with open("cache/docmap.pkl", "rb") as file:
             self.docmap = pickle.load(file)
+        with open("cache/term_frequencies.pkl", "rb") as file:
+            self.term_frequencies = pickle.load(file)

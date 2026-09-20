@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import pickle
 import string
@@ -56,6 +57,15 @@ class InvertedIndex:
 
     def get_tf(self, doc_id, term):
         return self.term_frequencies.get(doc_id, Counter()).get(term, 0)
+
+    def get_bm25_idf(self, term: str) -> float:
+        document_count = len(self.docmap)
+        document_frequency = len(self.get_documents(term))
+        return math.log(
+            (document_count - document_frequency + 0.5)
+            / (document_frequency + 0.5)
+            + 1
+        )
 
     def build(self):
         for movie in load_movies():

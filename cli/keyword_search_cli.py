@@ -10,6 +10,12 @@ def build_command() -> None:
     index.save()
 
 
+def bm25_idf_command(term: str) -> float:
+    index = InvertedIndex()
+    index.load()
+    return index.get_bm25_idf(tokenize_term(term))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -25,6 +31,10 @@ def main() -> None:
     tfidf_parser = subparsers.add_parser("tfidf", help="Get TF-IDF score")
     tfidf_parser.add_argument("doc_id", type=int)
     tfidf_parser.add_argument("term", type=str)
+    bm25_idf_parser = subparsers.add_parser(
+        "bm25idf", help="Get BM25 IDF score for a given term"
+    )
+    bm25_idf_parser.add_argument("term", type=str, help="Term to get BM25 IDF score for")
 
     args = parser.parse_args()
 
@@ -84,6 +94,9 @@ def main() -> None:
                 f"TF-IDF score of '{args.term}' in document "
                 f"'{args.doc_id}': {tf_idf:.2f}"
             )
+        case "bm25idf":
+            bm25idf = bm25_idf_command(args.term)
+            print(f"BM25 IDF score of '{args.term}': {bm25idf:.2f}")
         case _:
             parser.print_help()
 

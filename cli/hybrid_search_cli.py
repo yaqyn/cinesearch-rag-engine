@@ -10,6 +10,11 @@ from lib.hybrid_search import HybridSearch, normalize_scores
 from lib.semantic_search import load_movies
 
 
+LLM_MODEL = os.environ.get(
+    "OPENROUTER_MODEL", "google/gemma-4-26b-a4b-it:free"
+)
+
+
 def enhance_query_with_spelling(query: str) -> str:
     load_dotenv()
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -21,7 +26,7 @@ def enhance_query_with_spelling(query: str) -> str:
         api_key=api_key,
     )
     response = client.chat.completions.create(
-        model="openrouter/free",
+        model=LLM_MODEL,
         messages=[
             {
                 "role": "user",
@@ -48,7 +53,7 @@ def rewrite_query(query: str) -> str:
         api_key=api_key,
     )
     response = client.chat.completions.create(
-        model="openrouter/free",
+        model=LLM_MODEL,
         messages=[
             {
                 "role": "user",
@@ -82,7 +87,7 @@ def expand_query(query: str) -> str:
         api_key=api_key,
     )
     response = client.chat.completions.create(
-        model="openrouter/free",
+        model=LLM_MODEL,
         messages=[
             {
                 "role": "user",
@@ -126,7 +131,7 @@ Score:'''
     for attempt in range(3):
         try:
             response = client.chat.completions.create(
-                model="openrouter/free",
+                model=LLM_MODEL,
                 messages=[{"role": "user", "content": prompt}],
             )
             score = float(response.choices[0].message.content.strip())
@@ -170,7 +175,7 @@ Ranking:'''
     for attempt in range(3):
         try:
             response = client.chat.completions.create(
-                model="openrouter/free",
+                model=LLM_MODEL,
                 messages=[{"role": "user", "content": prompt}],
             )
             ranked_ids = json.loads(response.choices[0].message.content.strip())

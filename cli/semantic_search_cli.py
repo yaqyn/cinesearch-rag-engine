@@ -1,6 +1,7 @@
 import argparse
 
 from lib.semantic_search import (
+    ChunkedSemanticSearch,
     SemanticSearch,
     chunk_text,
     semantic_chunk_text,
@@ -19,6 +20,7 @@ def main() -> None:
     embed_parser = subparsers.add_parser("embed_text", help="Generate a text embedding")
     embed_parser.add_argument("text", type=str)
     subparsers.add_parser("verify_embeddings", help="Verify movie embeddings")
+    subparsers.add_parser("embed_chunks", help="Generate chunked movie embeddings")
     query_parser = subparsers.add_parser("embed_query", help="Generate a query embedding")
     query_parser.add_argument("query", type=str)
     search_parser = subparsers.add_parser("search", help="Search movies semantically")
@@ -43,6 +45,11 @@ def main() -> None:
             embed_text(args.text)
         case "verify_embeddings":
             verify_embeddings()
+        case "embed_chunks":
+            documents = load_movies()
+            semantic_search = ChunkedSemanticSearch()
+            embeddings = semantic_search.load_or_create_chunk_embeddings(documents)
+            print(f"Generated {len(embeddings)} chunked embeddings")
         case "embed_query":
             embed_query_text(args.query)
         case "search":

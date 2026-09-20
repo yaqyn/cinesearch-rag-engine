@@ -1,5 +1,6 @@
 import json
 import os
+import re
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -34,6 +35,27 @@ def chunk_text(text: str, chunk_size: int, overlap: int = 0) -> list[str]:
     while start < len(words):
         chunks.append(" ".join(words[start : start + chunk_size]))
         if start + chunk_size >= len(words):
+            break
+        start += step
+    return chunks
+
+
+def semantic_chunk_text(
+    text: str, max_chunk_size: int, overlap: int = 0
+) -> list[str]:
+    if max_chunk_size <= 0:
+        raise ValueError("max chunk size must be greater than zero")
+    if overlap < 0 or overlap >= max_chunk_size:
+        raise ValueError("overlap must be non-negative and smaller than max chunk size")
+
+    sentences = re.split(r"(?<=[.!?])\s+", text.strip())
+    sentences = [sentence for sentence in sentences if sentence]
+    chunks = []
+    start = 0
+    step = max_chunk_size - overlap
+    while start < len(sentences):
+        chunks.append(" ".join(sentences[start : start + max_chunk_size]))
+        if start + max_chunk_size >= len(sentences):
             break
         start += step
     return chunks

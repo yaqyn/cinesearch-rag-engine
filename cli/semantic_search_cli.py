@@ -3,6 +3,7 @@ import argparse
 from lib.semantic_search import (
     SemanticSearch,
     chunk_text,
+    semantic_chunk_text,
     embed_query_text,
     embed_text,
     load_movies,
@@ -27,6 +28,12 @@ def main() -> None:
     chunk_parser.add_argument("text", type=str)
     chunk_parser.add_argument("--chunk-size", type=int, default=200)
     chunk_parser.add_argument("--overlap", type=int, default=0)
+    semantic_chunk_parser = subparsers.add_parser(
+        "semantic_chunk", help="Split text into sentence-based chunks"
+    )
+    semantic_chunk_parser.add_argument("text", type=str)
+    semantic_chunk_parser.add_argument("--max-chunk-size", type=int, default=4)
+    semantic_chunk_parser.add_argument("--overlap", type=int, default=0)
     args = parser.parse_args()
 
     match args.command:
@@ -49,6 +56,13 @@ def main() -> None:
         case "chunk":
             chunks = chunk_text(args.text, args.chunk_size, args.overlap)
             print(f"Chunking {len(args.text)} characters")
+            for chunk_number, chunk in enumerate(chunks, start=1):
+                print(f"{chunk_number}. {chunk}")
+        case "semantic_chunk":
+            chunks = semantic_chunk_text(
+                args.text, args.max_chunk_size, args.overlap
+            )
+            print(f"Semantically chunking {len(args.text)} characters")
             for chunk_number, chunk in enumerate(chunks, start=1):
                 print(f"{chunk_number}. {chunk}")
         case _:

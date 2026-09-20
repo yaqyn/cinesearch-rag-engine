@@ -1,7 +1,6 @@
 import argparse
 
-from lib.hybrid_search import normalize_scores
-from lib.hybrid_search import HybridSearch
+from lib.hybrid_search import HybridSearch, normalize_scores
 from lib.semantic_search import load_movies
 
 
@@ -18,6 +17,12 @@ def main() -> None:
     weighted_parser.add_argument("query", type=str)
     weighted_parser.add_argument("--alpha", type=float, default=0.5)
     weighted_parser.add_argument("--limit", type=int, default=5)
+    rrf_parser = subparsers.add_parser(
+        "rrf-search", help="Search using reciprocal rank fusion"
+    )
+    rrf_parser.add_argument("query", type=str)
+    rrf_parser.add_argument("-k", type=int, default=60)
+    rrf_parser.add_argument("--limit", type=int, default=5)
 
     args = parser.parse_args()
 
@@ -37,6 +42,20 @@ def main() -> None:
                 print(
                     f"  BM25: {result['bm25']:.3f}, "
                     f"Semantic: {result['semantic']:.3f}"
+                )
+                print(f"  {document['description'][:100]}...")
+        case "rrf-search":
+            hybrid_search = HybridSearch(load_movies())
+            results = hybrid_search.rrf_search(args.query, args.k, args.limit)[
+                : args.limit
+            ]
+            for i, result in enumerate(results, start=1):
+                document = result["document"]
+                print(f"{i}. {document['title']}")
+                print(f"  RRF Score: {result['rrf']:.3f}")
+                print(
+                    f"  BM25 Rank: {result['bm25_rank']}, "
+                    f"Semantic Rank: {result['semantic_rank']}"
                 )
                 print(f"  {document['description'][:100]}...")
         case _:

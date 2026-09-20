@@ -56,7 +56,31 @@ class HybridSearch:
         return sorted(results, key=lambda item: item["hybrid"], reverse=True)
 
     def rrf_search(self, query: str, k: int, limit: int = 10) -> list[dict]:
-        raise NotImplementedError("RRF hybrid search is not implemented yet.")
+        bm25_results = self._bm25_search(query, limit * 500)
+        semantic_results = self.semantic_search.search_chunks(query, limit * 500)
+        combined = {}
+
+        for rank, (document, _) in enumerate(bm25_results, start=1):
+            document_id = document["id"]
+            combined.setdefault(
+                document_id,
+                {"document": document, "bm25_rank": None,
+                 "semantic_rank": None, "rrf": 0.0},
+            )
+            combined[document_id]["bm25_rank"] = rank
+            combined[document_id]["rrf"] += rrf_score(rank, k)
+
+        for rank, result in enumerate(semantic_results, start=1):
+            document_id = result["id"]
+            combined.setdefault(
+                document_id,
+                {"document": self.idx.docmap[document_id], "bm25_rank": None,
+                 "semantic_rank": None, "rrf": 0.0},
+            )
+            combined[document_id]["semantic_rank"] = rank
+            combined[document_id]["rrf"] += rrf_score(rank, k)
+
+        return sorted(combined.values(), key=lambda item: item["rrf"], reverse=True)
 
 
 def normalize_scores(scores: list[float]) -> list[float]:
@@ -67,3 +91,7 @@ def normalize_scores(scores: list[float]) -> list[float]:
     if minimum == maximum:
         return [1.0] * len(scores)
     return [(score - minimum) / (maximum - minimum) for score in scores]
+
+
+def rrf_score(rank: int, k: int) -> float:
+    return 1 / (k + rank)

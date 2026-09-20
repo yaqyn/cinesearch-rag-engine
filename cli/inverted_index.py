@@ -7,7 +7,10 @@ from collections import Counter
 
 from nltk.stem import PorterStemmer
 
-from constants import BM25_B, BM25_K1, CACHE_DIR
+try:
+    from constants import BM25_B, BM25_K1, CACHE_DIR
+except ModuleNotFoundError:
+    from .constants import BM25_B, BM25_K1, CACHE_DIR
 
 
 stemmer = PorterStemmer()

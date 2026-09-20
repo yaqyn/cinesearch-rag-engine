@@ -6,7 +6,10 @@ import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer
 
-from lib.search_utils import format_search_result
+try:
+    from lib.search_utils import format_search_result
+except ModuleNotFoundError:
+    from .search_utils import format_search_result
 
 
 def cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:

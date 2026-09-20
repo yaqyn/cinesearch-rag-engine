@@ -2,6 +2,7 @@ import argparse
 
 from lib.semantic_search import (
     SemanticSearch,
+    chunk_text,
     embed_query_text,
     embed_text,
     load_movies,
@@ -22,6 +23,9 @@ def main() -> None:
     search_parser = subparsers.add_parser("search", help="Search movies semantically")
     search_parser.add_argument("query", type=str)
     search_parser.add_argument("--limit", type=int, default=5)
+    chunk_parser = subparsers.add_parser("chunk", help="Split text into word chunks")
+    chunk_parser.add_argument("text", type=str)
+    chunk_parser.add_argument("--chunk-size", type=int, default=200)
     args = parser.parse_args()
 
     match args.command:
@@ -41,6 +45,11 @@ def main() -> None:
             for result_number, result in enumerate(results, start=1):
                 print(f"{result_number}. {result['title']} (score: {result['score']:.4f})")
                 print(f"  {result['description']}")
+        case "chunk":
+            chunks = chunk_text(args.text, args.chunk_size)
+            print(f"Chunking {len(args.text)} characters")
+            for chunk_number, chunk in enumerate(chunks, start=1):
+                print(f"{chunk_number}. {chunk}")
         case _:
             parser.print_help()
 

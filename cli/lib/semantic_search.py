@@ -21,6 +21,14 @@ def load_movies() -> list[dict]:
         return json.load(file)["movies"]
 
 
+def chunk_text(text: str, chunk_size: int) -> list[str]:
+    words = text.split()
+    return [
+        " ".join(words[index : index + chunk_size])
+        for index in range(0, len(words), chunk_size)
+    ]
+
+
 class SemanticSearch:
     def __init__(self):
         self.model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")

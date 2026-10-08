@@ -115,6 +115,40 @@ Answer:"""
     return response.choices[0].message.content.strip()
 
 
+def answer_question(question: str, results: list[dict]) -> str:
+    load_dotenv()
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENROUTER_API_KEY environment variable not set")
+    context = "\n".join(
+        f"{result['document']['title']}: "
+        f"{result['document']['description'][:1000]}"
+        for result in results
+    )
+    prompt = f"""Answer the user's question based on the provided movies that are available on Webflyx, a streaming service.
+
+Question: {question}
+
+Documents:
+{context}
+
+Instructions:
+- Answer questions directly and concisely
+- Be casual and conversational
+- Don't be cringe or hype-y
+- Talk like a normal person would in a chat conversation
+
+Answer:"""
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1", api_key=api_key, timeout=60.0
+    )
+    response = client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.choices[0].message.content.strip()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Retrieval Augmented Generation CLI"
@@ -134,6 +168,11 @@ def main() -> None:
     )
     citations_parser.add_argument("query", type=str, help="Search query")
     citations_parser.add_argument("--limit", type=int, default=5)
+    question_parser = subparsers.add_parser(
+        "question", help="Answer a question about movies"
+    )
+    question_parser.add_argument("question", type=str, help="Question to answer")
+    question_parser.add_argument("--limit", type=int, default=5)
 
     args = parser.parse_args()
 
@@ -163,6 +202,15 @@ def main() -> None:
                 print(f"- {result['document']['title']}")
             print("\nLLM Answer:")
             print(generate_cited_answer(args.query, results))
+        case "question":
+            results = HybridSearch(load_movies()).rrf_search(
+                args.question, 60, args.limit
+            )[: args.limit]
+            print("Search Results:")
+            for result in results:
+                print(f"- {result['document']['title']}")
+            print("\nAnswer:")
+            print(answer_question(args.question, results))
         case _:
             parser.print_help()
 

@@ -1,4 +1,4 @@
-![CineSearch — animated project cover](readme-assets/cover.gif)
+![CineSearch — project cover](readme-assets/cover.png)
 
 # CineSearch
 

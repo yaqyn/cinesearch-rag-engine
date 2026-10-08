@@ -1,14 +1,23 @@
-# Python-generated files
+# Python build and test output
 __pycache__/
 *.py[oc]
 build/
 dist/
 wheels/
 *.egg-info
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
-# Virtual environments
-.venv
-/data/
+# Local environments and generated search artifacts
+.venv/
 /cache/
+/data/*
+!/data/stopwords.txt
+!/data/golden_dataset.json
 
+# Local credentials; a template may be published without real values
 .env
+.env.*
+!.env.example

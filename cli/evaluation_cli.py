@@ -29,10 +29,12 @@ def main() -> None:
         retrieved = [result["document"]["title"] for result in results[:limit]]
         precision = sum(title in relevant for title in retrieved) / limit
         recall = sum(title in retrieved for title in relevant) / len(relevant)
+        f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
 
         print(f"\n- Query: {query}")
         print(f"  - Precision@{limit}: {precision:.4f}")
         print(f"  - Recall@{limit}: {recall:.4f}")
+        print(f"  - F1 Score: {f1:.4f}")
         print(f"  - Retrieved: {', '.join(retrieved)}")
         print(f"  - Relevant: {', '.join(relevant)}")
 

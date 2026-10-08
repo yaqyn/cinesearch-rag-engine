@@ -28,9 +28,11 @@ def main() -> None:
         results = search.rrf_search(query, 60, limit)
         retrieved = [result["document"]["title"] for result in results[:limit]]
         precision = sum(title in relevant for title in retrieved) / limit
+        recall = sum(title in retrieved for title in relevant) / len(relevant)
 
         print(f"\n- Query: {query}")
         print(f"  - Precision@{limit}: {precision:.4f}")
+        print(f"  - Recall@{limit}: {recall:.4f}")
         print(f"  - Retrieved: {', '.join(retrieved)}")
         print(f"  - Relevant: {', '.join(relevant)}")
 

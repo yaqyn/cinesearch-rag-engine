@@ -76,6 +76,45 @@ Provide a comprehensive 3-4 sentence answer that combines information from multi
     return response.choices[0].message.content.strip()
 
 
+def generate_cited_answer(query: str, results: list[dict]) -> str:
+    load_dotenv()
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENROUTER_API_KEY environment variable not set")
+
+    documents = "\n".join(
+        f"[{index}] {result['document']['title']}: "
+        f"{result['document']['description'][:1000]}"
+        for index, result in enumerate(results, start=1)
+    )
+    prompt = f"""Answer the query below and give information based on the provided documents.
+
+The answer should be tailored to users of Webflyx, a movie streaming service.
+If not enough information is available to provide a good answer, say so, but give the best answer possible while citing the sources available.
+
+Query: {query}
+
+Documents:
+{documents}
+
+Instructions:
+- Provide a comprehensive answer that addresses the query
+- Cite sources in the format [1], [2], etc. when referencing information
+- If sources disagree, mention the different viewpoints
+- If the answer isn't in the provided documents, say "I don't have enough information"
+- Be direct and informative
+
+Answer:"""
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1", api_key=api_key, timeout=60.0
+    )
+    response = client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.choices[0].message.content.strip()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Retrieval Augmented Generation CLI"
@@ -90,6 +129,11 @@ def main() -> None:
     )
     summarize_parser.add_argument("query", type=str, help="Search query")
     summarize_parser.add_argument("--limit", type=int, default=5)
+    citations_parser = subparsers.add_parser(
+        "citations", help="Answer a query with source citations"
+    )
+    citations_parser.add_argument("query", type=str, help="Search query")
+    citations_parser.add_argument("--limit", type=int, default=5)
 
     args = parser.parse_args()
 
@@ -110,6 +154,15 @@ def main() -> None:
                 print(f"- {result['document']['title']}")
             print("\nLLM Summary:")
             print(generate_summary(args.query, results))
+        case "citations":
+            results = HybridSearch(load_movies()).rrf_search(
+                args.query, 60, args.limit
+            )[: args.limit]
+            print("Search Results:")
+            for result in results:
+                print(f"- {result['document']['title']}")
+            print("\nLLM Answer:")
+            print(generate_cited_answer(args.query, results))
         case _:
             parser.print_help()
 

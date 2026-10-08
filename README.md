@@ -2,6 +2,9 @@
 
 # CineSearch — Movie RAG Engine
 
+> **Learning Journey Projects · Boot.dev**
+> A student project developed through the Boot.dev curriculum and extended through hands-on practice.
+
 **A practical movie-search engine built from first principles.**
 
 CineSearch is a complete Retrieval-Augmented Generation (RAG) learning project. It starts with normalized keyword matching and grows into a multi-stage search system that combines BM25, dense sentence embeddings, chunk retrieval, reciprocal rank fusion, reranking, LLM query enhancement, evaluation metrics, and grounded generation.

@@ -1,10 +1,12 @@
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 import time
 
 from dotenv import load_dotenv
 from openai import OpenAI
+from sentence_transformers import CrossEncoder
 
 from lib.hybrid_search import HybridSearch, normalize_scores
 from lib.semantic_search import load_movies
@@ -193,6 +195,22 @@ Ranking:'''
     raise RuntimeError("Unable to get valid batch rerank results")
 
 
+def rerank_cross_encoder(query: str, results: list[dict]) -> list[dict]:
+    model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", device="cpu")
+    pairs = [
+        (
+            query,
+            f"{result['document']['title']}: "
+            f"{result['document']['description'][:500]}",
+        )
+        for result in results
+    ]
+    scores = model.predict(pairs, show_progress_bar=True)
+    for result, score in zip(results, scores):
+        result["rerank_score"] = float(score)
+    return sorted(results, key=lambda result: result["rerank_score"], reverse=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hybrid Search CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -220,7 +238,7 @@ def main() -> None:
     )
     rrf_parser.add_argument(
         "--rerank-method",
-        choices=["individual", "batch"],
+        choices=["individual", "batch", "cross_encoder"],
         help="Reranking method",
     )
 
@@ -269,14 +287,26 @@ def main() -> None:
                     f"{args.rerank_method} method..."
                 )
                 if args.rerank_method == "individual":
-                    for result in results:
-                        result["rerank_score"] = rerank_document(query, result)
-                        time.sleep(3)
+                    for start in range(0, len(results), 5):
+                        group = results[start : start + 5]
+                        with ThreadPoolExecutor(max_workers=5) as executor:
+                            scores = list(
+                                executor.map(
+                                    lambda result: rerank_document(query, result),
+                                    group,
+                                )
+                            )
+                        for result, score in zip(group, scores):
+                            result["rerank_score"] = score
+                        if start + 5 < len(results):
+                            time.sleep(3)
                     results.sort(
                         key=lambda result: result["rerank_score"], reverse=True
                     )
-                else:
+                elif args.rerank_method == "batch":
                     results = rerank_batch(query, results)
+                else:
+                    results = rerank_cross_encoder(query, results)
             results = results[: args.limit]
             print(
                 f"Reciprocal Rank Fusion Results for '{query}' (k={args.k}):"
@@ -286,6 +316,8 @@ def main() -> None:
                 print(f"{i}. {document['title']}")
                 if args.rerank_method == "individual":
                     print(f"   Re-rank Score: {result['rerank_score']:.3f}/10")
+                elif args.rerank_method == "cross_encoder":
+                    print(f"   Re-rank Score: {result['rerank_score']:.3f}")
                 elif args.rerank_method == "batch":
                     print(f"   Re-rank Rank: {result['rerank_rank']}")
                 print(f"  RRF Score: {result['rrf']:.3f}")

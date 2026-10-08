@@ -1,6 +1,6 @@
 ![CineSearch — project cover](readme-assets/cover.png)
 
-# CineSearch
+# CineSearch — Movie RAG Engine
 
 **A practical movie-search engine built from first principles.**
 

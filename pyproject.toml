@@ -1,5 +1,5 @@
 [project]
-name = "cinesearch"
+name = "cinesearch-rag-engine"
 version = "0.1.0"
 description = "A movie search engine combining BM25, semantic retrieval, hybrid ranking, and grounded generation"
 readme = "README.md"

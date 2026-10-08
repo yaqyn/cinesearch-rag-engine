@@ -612,7 +612,7 @@ wheels = [
 ]
 
 [[package]]
-name = "cinesearch"
+name = "cinesearch-rag-engine"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

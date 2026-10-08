@@ -1,7 +1,7 @@
 [project]
-name = "rag-search-engine"
+name = "cinesearch"
 version = "0.1.0"
-description = "Add your description here"
+description = "A movie search engine combining BM25, semantic retrieval, hybrid ranking, and grounded generation"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

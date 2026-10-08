@@ -211,6 +211,54 @@ def rerank_cross_encoder(query: str, results: list[dict]) -> list[dict]:
     return sorted(results, key=lambda result: result["rerank_score"], reverse=True)
 
 
+def evaluate_results(query: str, results: list[dict]) -> list[int]:
+    load_dotenv()
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENROUTER_API_KEY environment variable not set")
+
+    formatted_results = [
+        f"{result['document']['title']}: "
+        f"{result['document']['description'][:200]}"
+        for result in results
+    ]
+    prompt = f'''Rate how relevant each result is to this query on a 0-3 scale:
+
+Query: "{query}"
+
+Results:
+{chr(10).join(formatted_results)}
+
+Scale:
+- 3: Highly relevant
+- 2: Relevant
+- 1: Marginally relevant
+- 0: Not relevant
+
+Do NOT give any numbers other than 0, 1, 2, or 3.
+
+Return ONLY the scores in the same order you were given the documents. Return a valid JSON list, nothing else. For example:
+[2, 0, 3, 2, 0, 1]'''
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1", api_key=api_key, timeout=30.0
+    )
+    for attempt in range(3):
+        try:
+            response = client.chat.completions.create(
+                model=LLM_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            scores = json.loads(response.choices[0].message.content.strip())
+            if len(scores) != len(results) or any(score not in (0, 1, 2, 3) for score in scores):
+                raise ValueError("Invalid evaluation scores")
+            return scores
+        except Exception:
+            if attempt == 2:
+                raise
+            time.sleep(3)
+    raise RuntimeError("Unable to evaluate search results")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hybrid Search CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -240,6 +288,9 @@ def main() -> None:
         "--rerank-method",
         choices=["individual", "batch", "cross_encoder"],
         help="Reranking method",
+    )
+    rrf_parser.add_argument(
+        "--evaluate", action="store_true", help="Evaluate search results with an LLM"
     )
 
     args = parser.parse_args()
@@ -326,6 +377,11 @@ def main() -> None:
                     f"Semantic Rank: {result['semantic_rank']}"
                 )
                 print(f"   {document['description'][:100]}...")
+            if args.evaluate:
+                scores = evaluate_results(query, results)
+                print()
+                for i, (result, score) in enumerate(zip(results, scores), start=1):
+                    print(f"{i}. {result['document']['title']}: {score}/3")
         case _:
             parser.print_help()
 

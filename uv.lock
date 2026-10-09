@@ -63,11 +63,11 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "nltk", specifier = ">=3.10.3" },
+    { name = "nltk", specifier = "==3.10.3" },
     { name = "numpy", specifier = "==2.3.3" },
     { name = "openai", specifier = "==2.44.0" },
     { name = "pillow", specifier = ">=12.3.0" },
-    { name = "python-dotenv", specifier = ">=1.2.2" },
+    { name = "python-dotenv", specifier = "==1.2.4" },
     { name = "sentence-transformers", specifier = ">=6.1.0" },
     { name = "torch", index = "https://download.pytorch.org/whl/cpu" },
 ]

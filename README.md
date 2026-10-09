@@ -1,4 +1,4 @@
-![CineSearch — project cover](readme-assets/cinesearch-cover.png)
+![CineSearch — retro movie-search cover](https://raw.githubusercontent.com/yaqyn/cinesearch-rag-engine/0259ec3b593c99a86c23b47c16598cb59436d8c2/readme-assets/cinesearch-cover.png)
 
 # CineSearch — Movie RAG Engine
 

@@ -5,7 +5,7 @@ import pickle
 import string
 from collections import Counter
 
-from nltk.stem import PorterStemmer
+import snowballstemmer
 
 try:
     from constants import BM25_B, BM25_K1, CACHE_DIR
@@ -21,7 +21,7 @@ except ModuleNotFoundError:
     )
 
 
-stemmer = PorterStemmer()
+stemmer = snowballstemmer.stemmer("english")
 translation_table = str.maketrans("", "", string.punctuation)
 
 
@@ -43,7 +43,7 @@ stop_words = set(load_stop_words())
 
 def tokenize_text(text: str) -> list[str]:
     tokens = text.lower().translate(translation_table).split()
-    return [stemmer.stem(token) for token in tokens if token not in stop_words]
+    return [stemmer.stemWord(token) for token in tokens if token not in stop_words]
 
 
 def tokenize_term(term: str) -> str:

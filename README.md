@@ -11,7 +11,7 @@ CineSearch is a complete Retrieval-Augmented Generation (RAG) learning project. 
 
 The project is implemented as small Python command-line tools so each retrieval and generation technique can be inspected independently.
 
-## What it can do
+## ✦ What it can do
 
 - Search movie titles with an inverted index and normalized token matching.
 - Rank documents with TF-IDF and BM25, including term-frequency saturation and document-length normalization.
@@ -25,7 +25,7 @@ The project is implemented as small Python command-line tools so each retrieval 
 
 ![Search workflow](readme-assets/workflow.svg)
 
-## Architecture
+## ◈ Architecture
 
 ```text
 data/movies.json
@@ -44,7 +44,7 @@ data/movies.json
 
 Keyword indexes and embedding artifacts are persisted under `cache/`. They are generated locally and ignored by Git because they are large, derived files.
 
-## Requirements
+## ◌ Requirements
 
 - Python 3.13+
 - [uv](https://docs.astral.sh/uv/)
@@ -52,7 +52,7 @@ Keyword indexes and embedding artifacts are persisted under `cache/`. They are g
 - CPU or CUDA-capable hardware; this project is configured to use CPU PyTorch for portability
 - An OpenRouter API key only for LLM-powered commands
 
-## Setup
+## ⌘ Setup
 
 ```bash
 uv sync
@@ -82,7 +82,7 @@ export OPENROUTER_MODEL="your-provider/your-model"
 
 The first semantic command downloads the embedding model. Later runs reuse the local model and cached vectors.
 
-## Build the local indexes
+## ⚙ Build the local indexes
 
 ```bash
 uv run cli/keyword_search_cli.py build
@@ -97,7 +97,14 @@ uv run cli/keyword_search_cli.py build
 uv run cli/semantic_search_cli.py embed_chunks
 ```
 
-## Search examples
+## ⌕ Search examples
+
+<div>
+  <span style="color:#e8af62">● Amber</span> `#e8af62` ·
+  <span style="color:#d96c5f">● Coral</span> `#d96c5f` ·
+  <span style="color:#f5e5cf">● Cream</span> `#f5e5cf` ·
+  <span style="color:#211820">● Aubergine</span> `#211820`
+</div>
 
 The installed product entrypoint provides a short path for the common workflow:
 
@@ -110,7 +117,7 @@ uv run cinesearch search "family movie about bears" --mode keyword --limit 5
 
 `health` reports the absolute cache location and available derived artifacts. Embedding caches now carry a dataset/model manifest, so changing the corpus or model automatically triggers a safe rebuild instead of silently using stale vectors.
 
-### Keyword and BM25
+### ◉ Keyword and BM25
 
 ```bash
 uv run cli/keyword_search_cli.py search "british bear"
@@ -122,7 +129,7 @@ uv run cli/keyword_search_cli.py bm25idf merida
 
 Keyword search preprocesses text consistently: lowercase conversion, punctuation removal, whitespace tokenization, stop-word filtering, and Porter stemming.
 
-### Semantic search
+### ◎ Semantic search
 
 ```bash
 uv run cli/semantic_search_cli.py search "a dangerous journey through the wilderness"
@@ -132,7 +139,7 @@ uv run cli/semantic_search_cli.py verify_embeddings
 uv run cli/semantic_search_cli.py semantic_chunk "First sentence. Second sentence! Third sentence?" --max-chunk-size 2 --overlap 1
 ```
 
-### Hybrid search
+### ⟁ Hybrid search
 
 Weighted search mixes normalized BM25 and semantic scores:
 
@@ -159,7 +166,7 @@ uv run cli/hybrid_search_cli.py rrf-search "family movie about bears" --evaluate
 
 `individual`, `batch`, `spell`, `rewrite`, `expand`, and `evaluate` use OpenRouter and may be affected by model availability, rate limits, or free-tier quotas. `cross_encoder` runs locally but downloads its model on first use.
 
-## Grounded generation
+## ✎ Grounded generation
 
 The generation CLI retrieves movie context first, then asks an LLM to use that context:
 
@@ -172,7 +179,7 @@ uv run cli/augmented_generation_cli.py citations "action movie with lasers"
 
 Each command prints retrieved titles before the generated response, making the grounding context visible instead of treating the model response as an unexplained black box.
 
-## Evaluation
+## ◒ Evaluation
 
 The golden dataset contains representative natural-language queries and relevant movie titles. The evaluator reports retrieval quality at a configurable K:
 
@@ -185,7 +192,7 @@ uv run cli/evaluation_cli.py --limit 10
 - **Recall@K**: relevant retrieved titles divided by all relevant titles in the golden dataset.
 - **F1**: the harmonic mean of precision and recall.
 
-## Project layout
+## ▦ Project layout
 
 | Path | Responsibility |
 | --- | --- |
@@ -203,7 +210,7 @@ uv run cli/evaluation_cli.py --limit 10
 | `data/` | Local movie corpus and evaluation data |
 | `cache/` | Generated indexes, metadata, and embedding arrays |
 
-## Development notes
+## ⌁ Development notes
 
 This repository follows Boot.dev's Retrieval-Augmented Generation course, but the implementation is organized as an inspectable project rather than a single monolithic application. Each lesson is committed separately, while generated data and credentials remain local.
 
@@ -218,7 +225,7 @@ uv run cli/augmented_generation_cli.py --help
 
 Built by **[Abdulrahman M. Yaqyn](https://yaqyn.dev)** through the [Boot.dev](https://www.boot.dev) curriculum.
 
-## Repository hygiene
+## ✓ Repository hygiene
 
 The movie corpus, generated indexes and embeddings, virtual environment, and credential files stay local. The small stop-word list and golden evaluation dataset are included in the repository.
 

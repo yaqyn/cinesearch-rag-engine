@@ -9,12 +9,12 @@ from sentence_transformers import SentenceTransformer
 try:
     from lib.config import (
         CHUNK_EMBEDDINGS_PATH, CHUNK_METADATA_PATH, MOVIE_EMBEDDINGS_PATH,
-        MOVIES_PATH, ensure_cache_dir,
+        MOVIES_PATH, EMBEDDING_MANIFEST_PATH, documents_signature, ensure_cache_dir,
     )
 except ModuleNotFoundError:
     from .config import (
         CHUNK_EMBEDDINGS_PATH, CHUNK_METADATA_PATH, MOVIE_EMBEDDINGS_PATH,
-        MOVIES_PATH, ensure_cache_dir,
+        MOVIES_PATH, EMBEDDING_MANIFEST_PATH, documents_signature, ensure_cache_dir,
     )
 
 try:
@@ -84,6 +84,7 @@ def semantic_chunk_text(
 
 class SemanticSearch:
     def __init__(self, model_name: str = "all-MiniLM-L6-v2") -> None:
+        self.model_name = model_name
         self.model = SentenceTransformer(model_name, device="cpu")
         self.embeddings = None
         self.documents = None
@@ -104,16 +105,34 @@ class SemanticSearch:
         self.embeddings = self.model.encode(movie_texts, show_progress_bar=True)
         ensure_cache_dir()
         np.save(MOVIE_EMBEDDINGS_PATH, self.embeddings)
+        self._write_manifest("movie", documents)
         return self.embeddings
 
     def load_or_create_embeddings(self, documents):
         self.documents = documents
         self.document_map = {document["id"]: document for document in documents}
-        if MOVIE_EMBEDDINGS_PATH.exists():
+        if MOVIE_EMBEDDINGS_PATH.exists() and self._manifest_matches("movie", documents):
             self.embeddings = np.load(MOVIE_EMBEDDINGS_PATH)
             if len(self.embeddings) == len(documents):
                 return self.embeddings
         return self.build_embeddings(documents)
+
+    def _write_manifest(self, kind: str, documents: list[dict]) -> None:
+        ensure_cache_dir()
+        manifest = {}
+        if EMBEDDING_MANIFEST_PATH.exists():
+            with EMBEDDING_MANIFEST_PATH.open(encoding="utf-8") as file:
+                manifest = json.load(file)
+        manifest[kind] = {"model": self.model_name, "documents": documents_signature(documents)}
+        with EMBEDDING_MANIFEST_PATH.open("w", encoding="utf-8") as file:
+            json.dump(manifest, file, indent=2)
+
+    def _manifest_matches(self, kind: str, documents: list[dict]) -> bool:
+        if not EMBEDDING_MANIFEST_PATH.exists():
+            return False
+        with EMBEDDING_MANIFEST_PATH.open(encoding="utf-8") as file:
+            entry = json.load(file).get(kind, {})
+        return entry == {"model": self.model_name, "documents": documents_signature(documents)}
 
     def search(self, query, limit):
         if self.embeddings is None:
@@ -175,12 +194,17 @@ class ChunkedSemanticSearch(SemanticSearch):
                 file,
                 indent=2,
             )
+        self._write_manifest("chunks", documents)
         return self.chunk_embeddings
 
     def load_or_create_chunk_embeddings(self, documents: list[dict]) -> np.ndarray:
         self.documents = documents
         self.document_map = {document["id"]: document for document in documents}
-        if CHUNK_EMBEDDINGS_PATH.exists() and CHUNK_METADATA_PATH.exists():
+        if (
+            CHUNK_EMBEDDINGS_PATH.exists()
+            and CHUNK_METADATA_PATH.exists()
+            and self._manifest_matches("chunks", documents)
+        ):
             self.chunk_embeddings = np.load(CHUNK_EMBEDDINGS_PATH)
             with CHUNK_METADATA_PATH.open(encoding="utf-8") as file:
                 self.chunk_metadata = json.load(file)["chunks"]

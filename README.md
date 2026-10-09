@@ -99,6 +99,17 @@ uv run cli/semantic_search_cli.py embed_chunks
 
 ## Search examples
 
+The installed product entrypoint provides a short path for the common workflow:
+
+```bash
+uv sync
+uv run cinesearch health
+uv run cinesearch search "family movie about bears" --limit 5
+uv run cinesearch search "family movie about bears" --mode keyword --limit 5
+```
+
+`health` reports the absolute cache location and available derived artifacts. Embedding caches now carry a dataset/model manifest, so changing the corpus or model automatically triggers a safe rebuild instead of silently using stale vectors.
+
 ### Keyword and BM25
 
 ```bash
@@ -186,6 +197,9 @@ uv run cli/evaluation_cli.py --limit 10
 | `cli/hybrid_search_cli.py` | Hybrid search, enhancement, reranking, and evaluation interface |
 | `cli/augmented_generation_cli.py` | RAG answers, summaries, questions, and citations |
 | `cli/evaluation_cli.py` | Golden-dataset Precision, Recall, and F1 evaluation |
+| `cli/cinesearch.py` | Unified product entrypoint and local artifact health check |
+| `cli/lib/config.py` | Repository-root paths, cache paths, and embedding signatures |
+| `tests/test_core.py` | Fast regression tests for core ranking and preprocessing behavior |
 | `data/` | Local movie corpus and evaluation data |
 | `cache/` | Generated indexes, metadata, and embedding arrays |
 

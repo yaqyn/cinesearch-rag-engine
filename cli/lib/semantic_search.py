@@ -7,6 +7,17 @@ import torch
 from sentence_transformers import SentenceTransformer
 
 try:
+    from lib.config import (
+        CHUNK_EMBEDDINGS_PATH, CHUNK_METADATA_PATH, MOVIE_EMBEDDINGS_PATH,
+        MOVIES_PATH, ensure_cache_dir,
+    )
+except ModuleNotFoundError:
+    from .config import (
+        CHUNK_EMBEDDINGS_PATH, CHUNK_METADATA_PATH, MOVIE_EMBEDDINGS_PATH,
+        MOVIES_PATH, ensure_cache_dir,
+    )
+
+try:
     from lib.search_utils import format_search_result
 except ModuleNotFoundError:
     from .search_utils import format_search_result
@@ -24,7 +35,7 @@ def cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
 
 
 def load_movies() -> list[dict]:
-    with open("data/movies.json") as file:
+    with MOVIES_PATH.open(encoding="utf-8") as file:
         return json.load(file)["movies"]
 
 
@@ -91,16 +102,15 @@ class SemanticSearch:
             for document in documents
         ]
         self.embeddings = self.model.encode(movie_texts, show_progress_bar=True)
-        os.makedirs("cache", exist_ok=True)
-        np.save("cache/movie_embeddings.npy", self.embeddings)
+        ensure_cache_dir()
+        np.save(MOVIE_EMBEDDINGS_PATH, self.embeddings)
         return self.embeddings
 
     def load_or_create_embeddings(self, documents):
         self.documents = documents
         self.document_map = {document["id"]: document for document in documents}
-        embeddings_path = "cache/movie_embeddings.npy"
-        if os.path.exists(embeddings_path):
-            self.embeddings = np.load(embeddings_path)
+        if MOVIE_EMBEDDINGS_PATH.exists():
+            self.embeddings = np.load(MOVIE_EMBEDDINGS_PATH)
             if len(self.embeddings) == len(documents):
                 return self.embeddings
         return self.build_embeddings(documents)
@@ -157,9 +167,9 @@ class ChunkedSemanticSearch(SemanticSearch):
             all_chunks, batch_size=256, show_progress_bar=True
         )
         self.chunk_metadata = chunk_metadata
-        os.makedirs("cache", exist_ok=True)
-        np.save("cache/chunk_embeddings.npy", self.chunk_embeddings)
-        with open("cache/chunk_metadata.json", "w") as file:
+        ensure_cache_dir()
+        np.save(CHUNK_EMBEDDINGS_PATH, self.chunk_embeddings)
+        with CHUNK_METADATA_PATH.open("w", encoding="utf-8") as file:
             json.dump(
                 {"chunks": chunk_metadata, "total_chunks": len(all_chunks)},
                 file,
@@ -170,11 +180,9 @@ class ChunkedSemanticSearch(SemanticSearch):
     def load_or_create_chunk_embeddings(self, documents: list[dict]) -> np.ndarray:
         self.documents = documents
         self.document_map = {document["id"]: document for document in documents}
-        embeddings_path = "cache/chunk_embeddings.npy"
-        metadata_path = "cache/chunk_metadata.json"
-        if os.path.exists(embeddings_path) and os.path.exists(metadata_path):
-            self.chunk_embeddings = np.load(embeddings_path)
-            with open(metadata_path) as file:
+        if CHUNK_EMBEDDINGS_PATH.exists() and CHUNK_METADATA_PATH.exists():
+            self.chunk_embeddings = np.load(CHUNK_EMBEDDINGS_PATH)
+            with CHUNK_METADATA_PATH.open(encoding="utf-8") as file:
                 self.chunk_metadata = json.load(file)["chunks"]
             return self.chunk_embeddings
         return self.build_chunk_embeddings(documents)

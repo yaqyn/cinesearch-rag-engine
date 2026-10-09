@@ -1,11 +1,14 @@
-import os
-
 try:
     from inverted_index import InvertedIndex
     from lib.semantic_search import ChunkedSemanticSearch
 except ModuleNotFoundError:
     from ..inverted_index import InvertedIndex
     from .semantic_search import ChunkedSemanticSearch
+
+try:
+    from lib.config import INDEX_PATH
+except ModuleNotFoundError:
+    from .config import INDEX_PATH
 
 
 class HybridSearch:
@@ -15,7 +18,7 @@ class HybridSearch:
         self.semantic_search.load_or_create_chunk_embeddings(documents)
 
         self.idx = InvertedIndex()
-        if not os.path.exists("cache/index.pkl"):
+        if not INDEX_PATH.exists():
             self.idx.build()
             self.idx.save()
 

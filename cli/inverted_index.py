@@ -9,8 +9,16 @@ from nltk.stem import PorterStemmer
 
 try:
     from constants import BM25_B, BM25_K1, CACHE_DIR
+    from lib.config import (
+        DOC_LENGTHS_PATH, DOCMAP_PATH, INDEX_PATH, MOVIES_PATH,
+        STOPWORDS_PATH, TERM_FREQUENCIES_PATH, ensure_cache_dir,
+    )
 except ModuleNotFoundError:
     from .constants import BM25_B, BM25_K1, CACHE_DIR
+    from .lib.config import (
+        DOC_LENGTHS_PATH, DOCMAP_PATH, INDEX_PATH, MOVIES_PATH,
+        STOPWORDS_PATH, TERM_FREQUENCIES_PATH, ensure_cache_dir,
+    )
 
 
 stemmer = PorterStemmer()
@@ -18,12 +26,12 @@ translation_table = str.maketrans("", "", string.punctuation)
 
 
 def load_movies() -> list[dict]:
-    with open("data/movies.json") as file:
+    with MOVIES_PATH.open(encoding="utf-8") as file:
         return json.load(file)["movies"]
 
 
 def load_stop_words() -> list[str]:
-    with open("data/stopwords.txt") as file:
+    with STOPWORDS_PATH.open(encoding="utf-8") as file:
         return [
             word.lower().translate(translation_table)
             for word in file.read().splitlines()
@@ -51,7 +59,7 @@ class InvertedIndex:
         self.docmap = {}
         self.term_frequencies = {}
         self.doc_lengths = {}
-        self.doc_lengths_path = os.path.join(CACHE_DIR, "doc_lengths.pkl")
+        self.doc_lengths_path = str(DOC_LENGTHS_PATH)
 
     def __add_document(self, doc_id, text):
         tokens = tokenize_text(text)
@@ -116,22 +124,22 @@ class InvertedIndex:
             )
 
     def save(self):
-        os.makedirs("cache", exist_ok=True)
-        with open("cache/index.pkl", "wb") as file:
+        ensure_cache_dir()
+        with INDEX_PATH.open("wb") as file:
             pickle.dump(self.index, file)
-        with open("cache/docmap.pkl", "wb") as file:
+        with DOCMAP_PATH.open("wb") as file:
             pickle.dump(self.docmap, file)
-        with open("cache/term_frequencies.pkl", "wb") as file:
+        with TERM_FREQUENCIES_PATH.open("wb") as file:
             pickle.dump(self.term_frequencies, file)
-        with open(self.doc_lengths_path, "wb") as file:
+        with DOC_LENGTHS_PATH.open("wb") as file:
             pickle.dump(self.doc_lengths, file)
 
     def load(self):
-        with open("cache/index.pkl", "rb") as file:
+        with INDEX_PATH.open("rb") as file:
             self.index = pickle.load(file)
-        with open("cache/docmap.pkl", "rb") as file:
+        with DOCMAP_PATH.open("rb") as file:
             self.docmap = pickle.load(file)
-        with open("cache/term_frequencies.pkl", "rb") as file:
+        with TERM_FREQUENCIES_PATH.open("rb") as file:
             self.term_frequencies = pickle.load(file)
-        with open(self.doc_lengths_path, "rb") as file:
+        with DOC_LENGTHS_PATH.open("rb") as file:
             self.doc_lengths = pickle.load(file)

@@ -26,5 +26,7 @@ jobs:
         run: uv run python -m compileall -q cli tests
       - name: Run tests
         run: uv run python -m unittest discover -s tests -v
+      - name: Audit dependencies
+        run: uvx --from pip-audit pip-audit --local --format columns
       - name: Check formatting whitespace
         run: git diff --check

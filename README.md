@@ -2,7 +2,7 @@
 
 # CineSearch — Movie RAG Engine
 
-> **Learning Journey Projects · Boot.dev**
+> **Learning Journey Project · Boot.dev**
 > A student project developed through the Boot.dev curriculum and extended through hands-on practice.
 
 **A practical movie-search engine built from first principles.**

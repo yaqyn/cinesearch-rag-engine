@@ -2,9 +2,6 @@
 
 # CineSearch — Movie RAG Engine
 
-> **Learning Journey Project · Boot.dev**
-> Developed through the Boot.dev curriculum and extended through independent work.
-
 **Find movies through keyword and semantic search, then generate answers grounded in retrieved descriptions.**
 
 CineSearch is a Retrieval-Augmented Generation (RAG) engine. It starts with normalized keyword matching and grows into a multi-stage search system that combines BM25, dense sentence embeddings, chunk retrieval, reciprocal rank fusion, reranking, LLM query enhancement, evaluation metrics, and grounded generation.
@@ -223,3 +220,6 @@ uv run cli/augmented_generation_cli.py --help
 ```
 
 Built by **[Abdulrahman M. Yaqyn](https://yaqyn.github.io/folio-static-site/)**.
+
+> **Learning Journey Project · Boot.dev**
+> Developed through the Boot.dev curriculum and extended through independent work.

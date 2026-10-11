@@ -223,7 +223,7 @@ uv run cli/hybrid_search_cli.py --help
 uv run cli/augmented_generation_cli.py --help
 ```
 
-Built by **[Abdulrahman M. Yaqyn](https://yaqyn.dev)** through the [Boot.dev](https://www.boot.dev) curriculum.
+Built by **[Abdulrahman M. Yaqyn](https://yaqyn.github.io/folio-static-site/)** through the [Boot.dev](https://www.boot.dev) curriculum.
 
 ## <img src="readme-assets/icons/check.svg" width="24" height="24" alt=""> Repository hygiene
 

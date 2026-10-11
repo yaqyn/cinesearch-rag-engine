@@ -8,7 +8,7 @@ CineSearch is a Retrieval-Augmented Generation (RAG) engine. It starts with norm
 
 The project is implemented as small Python command-line tools so each retrieval and generation technique can be inspected independently.
 
-[Install the search tools](#-installation)
+[Try movie search](#-quick-start)
 
 ## <img src="readme-assets/icons/features.svg" width="24" height="24" alt=""> Features
 
@@ -18,15 +18,17 @@ The project is implemented as small Python command-line tools so each retrieval 
 - Evaluate retrieval using Precision@K, Recall@K, and F1 against a golden dataset.
 - Generate answers, summaries, and citation-aware responses from retrieved context.
 
-## <img src="readme-assets/icons/requirements.svg" width="24" height="24" alt=""> Requirements
+## <img src="readme-assets/icons/installation.svg" width="24" height="24" alt=""> Installation
+
+Clone with `git clone https://github.com/yaqyn/cinesearch-rag-engine.git`, then run the commands below from `cinesearch-rag-engine/`.
+
+### <img src="readme-assets/icons/requirements.svg" width="20" height="20" alt=""> Requirements
 
 - Python 3.13+
 - [uv](https://docs.astral.sh/uv/)
 - The Boot.dev movie dataset at `data/movies.json`
-- CPU or CUDA-capable hardware; this project is configured to use CPU PyTorch for portability
+- A CPU; embedding models and PyTorch are configured for CPU execution (no CUDA required)
 - An OpenRouter API key only for LLM-powered commands
-
-## <img src="readme-assets/icons/installation.svg" width="24" height="24" alt=""> Installation
 
 ```bash
 uv sync
@@ -56,7 +58,7 @@ export OPENROUTER_MODEL="your-provider/your-model"
 
 The first semantic command downloads the embedding model. Later runs reuse the local model and cached vectors.
 
-## <img src="readme-assets/icons/configuration.svg" width="24" height="24" alt=""> Build the local indexes
+### <img src="readme-assets/icons/configuration.svg" width="20" height="20" alt=""> Build the local indexes
 
 ```bash
 uv run cli/keyword_search_cli.py build
@@ -71,7 +73,7 @@ uv run cli/keyword_search_cli.py build
 uv run cli/semantic_search_cli.py embed_chunks
 ```
 
-## <img src="readme-assets/icons/usage.svg" width="24" height="24" alt=""> Usage
+## <img src="readme-assets/icons/launch.svg" width="24" height="24" alt=""> Quick start
 
 The installed product entrypoint provides a short path for the common workflow:
 
@@ -83,6 +85,8 @@ uv run cinesearch search "family movie about bears" --mode keyword --limit 5
 ```
 
 `health` reports the absolute cache location and available derived artifacts. Embedding caches now carry a dataset/model manifest, so changing the corpus or model automatically triggers a safe rebuild instead of silently using stale vectors.
+
+## <img src="readme-assets/icons/usage.svg" width="24" height="24" alt=""> Usage
 
 ### <img src="readme-assets/icons/usage.svg" width="20" height="20" alt=""> Keyword and BM25
 
@@ -133,7 +137,7 @@ uv run cli/hybrid_search_cli.py rrf-search "family movie about bears" --evaluate
 
 `individual`, `batch`, `spell`, `rewrite`, `expand`, and `evaluate` use OpenRouter and may be affected by model availability, rate limits, or free-tier quotas. `cross_encoder` runs locally but downloads its model on first use.
 
-## <img src="readme-assets/icons/usage.svg" width="24" height="24" alt=""> Grounded generation
+### <img src="readme-assets/icons/usage.svg" width="20" height="20" alt=""> Grounded generation
 
 The generation CLI retrieves movie context first, then asks an LLM to use that context:
 
@@ -202,7 +206,7 @@ uv run cli/evaluation_cli.py --limit 10
 
 ## <img src="readme-assets/icons/security.svg" width="24" height="24" alt=""> Data and credentials
 
-The movie corpus, generated indexes and embeddings, virtual environment, and credential files stay local. The small stop-word list and golden evaluation dataset are included in the repository.
+The movie corpus, generated indexes and embeddings, virtual environment, and credential files are stored locally. LLM-powered commands send prompts and selected retrieved context to OpenRouter; local keyword and embedding search need no API key. The small stop-word list and golden evaluation dataset are included in the repository.
 
 `cli/provider_probe.py` is an optional live-provider diagnostic, not an automated test. It only sends a request when run directly and requires your own `OPENROUTER_API_KEY`. Importing it does not load credentials or call the provider.
 

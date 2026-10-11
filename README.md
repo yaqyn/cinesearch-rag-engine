@@ -11,7 +11,7 @@ CineSearch is a Retrieval-Augmented Generation (RAG) engine. It starts with norm
 
 The project is implemented as small Python command-line tools so each retrieval and generation technique can be inspected independently.
 
-[Install the search tools](#installation)
+[Install the search tools](#-installation)
 
 ## <img src="readme-assets/icons/features.svg" width="24" height="24" alt=""> Features
 

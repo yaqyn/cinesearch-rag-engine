@@ -6,7 +6,7 @@
 
 CineSearch is a Retrieval-Augmented Generation (RAG) engine. It starts with normalized keyword matching and grows into a multi-stage search system that combines BM25, dense sentence embeddings, chunk retrieval, reciprocal rank fusion, reranking, LLM query enhancement, evaluation metrics, and grounded generation.
 
-The project is implemented as small Python command-line tools so each retrieval and generation technique can be inspected independently.
+The project is implemented as small Python command-line tools so each retrieval and generation technique can be inspected independently. The unified search command requires a positive `--limit`; invalid limits are rejected before loading the dataset or models.
 
 [Try movie search](#-quick-start)
 

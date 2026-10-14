@@ -16,12 +16,19 @@ except ModuleNotFoundError:
     from .inverted_index import InvertedIndex
 
 
-def main() -> None:
+def positive_int(value):
+    number = int(value)
+    if number < 1:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return number
+
+
+def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description="CineSearch movie retrieval")
     subparsers = parser.add_subparsers(dest="command", required=True)
     search_parser = subparsers.add_parser("search", help="Search the movie catalog")
     search_parser.add_argument("query")
-    search_parser.add_argument("--limit", type=int, default=5)
+    search_parser.add_argument("--limit", type=positive_int, default=5)
     search_parser.add_argument(
         "--mode", choices=("hybrid", "keyword", "semantic"), default="hybrid"
     )
@@ -30,7 +37,7 @@ def main() -> None:
     )
     health_parser = subparsers.add_parser("health", help="Inspect local search artifacts")
     health_parser.set_defaults(command="health")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.command == "health":
         artifacts = sorted(path.name for path in CACHE_DIR.glob("*")) if CACHE_DIR.exists() else []

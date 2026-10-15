@@ -10,6 +10,15 @@ from cli.lib.semantic_search import semantic_chunk_text
 
 
 class CoreSearchTests(unittest.TestCase):
+    def test_blank_queries_fail_before_loading_data(self):
+        for query in ["", "  \t\n"]:
+            for mode in ["keyword", "semantic", "hybrid"]:
+                with self.subTest(query=query, mode=mode), patch("cli.cinesearch.load_movies") as load:
+                    with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as error:
+                        main(["search", query, "--mode", mode])
+                    self.assertEqual(error.exception.code, 2)
+                    load.assert_not_called()
+
     def test_invalid_limits_fail_before_loading_data(self):
         for value in ["0", "-1", "invalid"]:
             with self.subTest(value=value), patch("cli.cinesearch.load_movies") as load:

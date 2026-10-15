@@ -45,6 +45,9 @@ def main(argv=None) -> None:
         print(f"Artifacts: {', '.join(artifacts) if artifacts else 'none'}")
         return
 
+    if not args.query.strip():
+        parser.error("search query must not be empty or whitespace")
+
     documents = load_movies()
     if args.mode == "hybrid":
         search = HybridSearch(documents)

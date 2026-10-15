@@ -8,6 +8,7 @@ dependencies = [
     "numpy==2.3.3",
     "openai==2.44.0",
     "pillow>=12.3.0",
+    "prompt-toolkit>=3.0.52,<4",
     "python-dotenv==1.2.4",
     "sentence-transformers>=6.1.0",
     "snowballstemmer==2.2.0",

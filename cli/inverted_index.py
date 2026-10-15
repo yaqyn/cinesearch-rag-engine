@@ -4,6 +4,7 @@ import os
 import pickle
 import string
 from collections import Counter
+from functools import lru_cache
 
 import snowballstemmer
 
@@ -41,9 +42,14 @@ def load_stop_words() -> list[str]:
 stop_words = set(load_stop_words())
 
 
+@lru_cache(maxsize=65536)
+def stem_word(token: str) -> str:
+    return stemmer.stemWord(token)
+
+
 def tokenize_text(text: str) -> list[str]:
     tokens = text.lower().translate(translation_table).split()
-    return [stemmer.stemWord(token) for token in tokens if token not in stop_words]
+    return [stem_word(token) for token in tokens if token not in stop_words]
 
 
 def tokenize_term(term: str) -> str:
@@ -107,9 +113,18 @@ class InvertedIndex:
     def bm25_search(self, query, limit):
         query_tokens = tokenize_text(query)
         scores = {doc_id: 0.0 for doc_id in self.docmap}
-        for doc_id in scores:
-            for token in query_tokens:
-                scores[doc_id] += self.bm25(doc_id, token)
+        average_length = self.__get_avg_doc_length()
+        # Corpus-wide statistics are constant throughout a search. Visit only
+        # postings that contain a query term, rather than every movie/term pair.
+        for token in query_tokens:
+            idf = self.get_bm25_idf(token)
+            for doc_id in self.index.get(token, ()):
+                frequency = self.get_tf(doc_id, token)
+                normalization = (1 - BM25_B + BM25_B *
+                                 self.doc_lengths.get(doc_id, 0) / average_length
+                                 if average_length else 1.0)
+                scores[doc_id] += idf * frequency * (BM25_K1 + 1) / (
+                    frequency + BM25_K1 * normalization)
 
         ranked_documents = sorted(
             scores.items(), key=lambda item: item[1], reverse=True

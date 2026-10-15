@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# One-command setup and launch, independent of the caller's working directory.
+set -euo pipefail
+cd -- "$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+if command -v uv >/dev/null 2>&1; then
+    uv_bin=$(command -v uv)
+elif [[ -x "$HOME/.local/bin/uv" ]]; then
+    uv_bin="$HOME/.local/bin/uv"
+else
+    if ! command -v curl >/dev/null 2>&1; then
+        printf '%s\n' 'CineSearch setup needs curl to install uv. Install curl, then run ./launch again.' >&2
+        exit 1
+    fi
+    printf '%s\n' 'Installing uv into ~/.local/bin…' >&2
+    installer=$(mktemp)
+    trap 'rm -f -- "$installer"' EXIT
+    curl --fail --silent --show-error --location --connect-timeout 15 --max-time 120 \
+        https://astral.sh/uv/install.sh --output "$installer"
+    UV_INSTALL_DIR="$HOME/.local/bin" UV_NO_MODIFY_PATH=1 sh "$installer"
+    rm -f -- "$installer"
+    trap - EXIT
+    uv_bin="$HOME/.local/bin/uv"
+fi
+
+printf '%s\n' 'Preparing CineSearch…' >&2
+"$uv_bin" sync --locked
+"$uv_bin" run --no-sync python -m cli.bootstrap
+exec "$uv_bin" run --no-sync cinesearch "$@"

@@ -13,7 +13,7 @@ class CoreSearchTests(unittest.TestCase):
     def test_blank_queries_fail_before_loading_data(self):
         for query in ["", "  \t\n"]:
             for mode in ["keyword", "semantic", "hybrid"]:
-                with self.subTest(query=query, mode=mode), patch("cli.cinesearch.load_movies") as load:
+                with self.subTest(query=query, mode=mode), patch("cli.cinesearch.search_catalog") as load:
                     with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as error:
                         main(["search", query, "--mode", mode])
                     self.assertEqual(error.exception.code, 2)
@@ -21,7 +21,7 @@ class CoreSearchTests(unittest.TestCase):
 
     def test_invalid_limits_fail_before_loading_data(self):
         for value in ["0", "-1", "invalid"]:
-            with self.subTest(value=value), patch("cli.cinesearch.load_movies") as load:
+            with self.subTest(value=value), patch("cli.cinesearch.search_catalog") as load:
                 with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as error:
                     main(["search", "bear", "--limit", value])
                 self.assertEqual(error.exception.code, 2)
@@ -43,3 +43,27 @@ class CoreSearchTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class KeywordPerformanceRegressionTests(unittest.TestCase):
+    def test_stemming_reuses_repeated_words(self):
+        from cli.inverted_index import stem_word, tokenize_text
+        stem_word.cache_clear()
+        self.assertEqual(tokenize_text("bears bears bears"), ["bear", "bear", "bear"])
+        self.assertEqual(stem_word.cache_info().misses, 1)
+        self.assertEqual(stem_word.cache_info().hits, 2)
+
+    def test_optimized_bm25_matches_reference_scores(self):
+        from cli.inverted_index import InvertedIndex
+        from collections import Counter
+        index = InvertedIndex()
+        index.docmap = {1: {"id": 1}, 2: {"id": 2}, 3: {"id": 3}}
+        index.index = {"bear": {1, 2}, "forest": {2}}
+        index.term_frequencies = {1: Counter(bear=2), 2: Counter(bear=1, forest=1), 3: Counter(other=1)}
+        index.doc_lengths = {1: 2, 2: 2, 3: 1}
+        expected = {doc_id: sum(index.bm25(doc_id, token) for token in ["bear", "bear", "forest"])
+                    for doc_id in index.docmap}
+        actual = index.bm25_search("bear bear forest", 3)
+        for doc, score in actual:
+            self.assertAlmostEqual(score, expected[doc["id"]])
+        self.assertEqual([doc["id"] for doc, _ in actual], [2, 1, 3])

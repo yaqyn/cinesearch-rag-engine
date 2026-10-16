@@ -10,6 +10,25 @@ from cli.lib.semantic_search import semantic_chunk_text
 
 
 class CoreSearchTests(unittest.TestCase):
+    def test_rebuilding_index_removes_deleted_documents_and_terms(self):
+        from cli.inverted_index import InvertedIndex
+        index = InvertedIndex()
+        with patch("cli.inverted_index.load_movies", return_value=[
+            {"id": 1, "title": "Bear", "description": "forest"},
+            {"id": 2, "title": "Ocean", "description": "waves"},
+        ]):
+            index.build()
+        with patch("cli.inverted_index.load_movies", return_value=[
+            {"id": 1, "title": "Desert", "description": "sand"},
+        ]):
+            index.build()
+        self.assertEqual(set(index.docmap), {1})
+        self.assertEqual(set(index.term_frequencies), {1})
+        self.assertEqual(set(index.doc_lengths), {1})
+        self.assertEqual(index.get_documents("bear"), [])
+        self.assertEqual(index.get_documents("ocean"), [])
+        self.assertEqual(index.get_documents("desert"), [1])
+
     def test_blank_queries_fail_before_loading_data(self):
         for query in ["", "  \t\n"]:
             for mode in ["keyword", "semantic", "hybrid"]:

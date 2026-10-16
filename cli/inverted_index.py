@@ -132,6 +132,10 @@ class InvertedIndex:
         return [(self.docmap[doc_id], score) for doc_id, score in ranked_documents]
 
     def build(self):
+        self.index.clear()
+        self.docmap.clear()
+        self.term_frequencies.clear()
+        self.doc_lengths.clear()
         for movie in load_movies():
             self.docmap[movie["id"]] = movie
             self.__add_document(

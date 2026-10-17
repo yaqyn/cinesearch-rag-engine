@@ -56,7 +56,7 @@ class HybridSearch:
         for item in combined.values():
             item["hybrid"] = alpha * item["bm25"] + (1 - alpha) * item["semantic"]
             results.append(item)
-        return sorted(results, key=lambda item: item["hybrid"], reverse=True)
+        return sorted(results, key=lambda item: item["hybrid"], reverse=True)[:limit]
 
     def rrf_search(self, query: str, k: int, limit: int = 10) -> list[dict]:
         bm25_results = self._bm25_search(query, limit * 500)
@@ -83,7 +83,7 @@ class HybridSearch:
             combined[document_id]["semantic_rank"] = rank
             combined[document_id]["rrf"] += rrf_score(rank, k)
 
-        return sorted(combined.values(), key=lambda item: item["rrf"], reverse=True)
+        return sorted(combined.values(), key=lambda item: item["rrf"], reverse=True)[:limit]
 
 
 def normalize_scores(scores: list[float]) -> list[float]:

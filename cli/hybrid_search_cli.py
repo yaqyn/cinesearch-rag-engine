@@ -329,9 +329,8 @@ def main() -> None:
                 )
                 query = enhanced_query
             hybrid_search = HybridSearch(load_movies())
-            results = hybrid_search.rrf_search(query, args.k, args.limit)
-            if args.rerank_method:
-                results = results[: args.limit * 5]
+            candidate_limit = args.limit * 5 if args.rerank_method else args.limit
+            results = hybrid_search.rrf_search(query, args.k, candidate_limit)
             if args.rerank_method:
                 print(
                     f"Re-ranking top {args.limit} results using "

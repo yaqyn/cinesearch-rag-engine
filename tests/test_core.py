@@ -10,6 +10,37 @@ from cli.lib.semantic_search import semantic_chunk_text
 
 
 class CoreSearchTests(unittest.TestCase):
+    def test_reranking_requests_a_larger_candidate_pool(self):
+        import sys
+        from pathlib import Path
+        from contextlib import redirect_stdout
+        with patch.object(sys, "path", [str(Path(__file__).resolve().parents[1] / "cli"), *sys.path]):
+            from cli import hybrid_search_cli
+        for method, expected_limit in [(None, 2), ("batch", 10)]:
+            argv = ["hybrid-search", "rrf-search", "bear", "--limit", "2"]
+            if method:
+                argv += ["--rerank-method", method]
+            with patch.object(sys, "argv", argv), patch.object(hybrid_search_cli, "load_movies", return_value=[]), patch.object(hybrid_search_cli, "HybridSearch") as search, patch.object(hybrid_search_cli, "rerank_batch", return_value=[]) as rerank, redirect_stdout(io.StringIO()):
+                search.return_value.rrf_search.return_value = []
+                hybrid_search_cli.main()
+                search.return_value.rrf_search.assert_called_once_with("bear", 60, expected_limit)
+                if method:
+                    rerank.assert_called_once_with("bear", [])
+
+    def test_hybrid_backends_honor_the_requested_result_limit(self):
+        from types import SimpleNamespace
+        from cli.lib.hybrid_search import HybridSearch
+        documents = {i: {"id": i, "title": str(i)} for i in range(1, 5)}
+        search = HybridSearch.__new__(HybridSearch)
+        search.idx = SimpleNamespace(docmap=documents)
+        search._bm25_search = lambda query, limit: [(documents[i], float(5-i)) for i in range(1, 5)]
+        search.semantic_search = SimpleNamespace(search_chunks=lambda query, limit: [
+            {"id": i, "score": float(5-i)} for i in range(1, 5)])
+        weighted = search.weighted_search("test", alpha=0.5, limit=2)
+        reciprocal = search.rrf_search("test", k=60, limit=2)
+        self.assertEqual([row["document"]["id"] for row in weighted], [1, 2])
+        self.assertEqual([row["document"]["id"] for row in reciprocal], [1, 2])
+
     def test_rebuilding_index_removes_deleted_documents_and_terms(self):
         from cli.inverted_index import InvertedIndex
         index = InvertedIndex()

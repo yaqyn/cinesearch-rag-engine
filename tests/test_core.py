@@ -7,9 +7,17 @@ from cli.cinesearch import main
 from cli.inverted_index import tokenize_text
 from cli.lib.hybrid_search import normalize_scores, rrf_score
 from cli.lib.semantic_search import semantic_chunk_text
+from cli.lib.search_utils import document_preview
 
 
 class CoreSearchTests(unittest.TestCase):
+    def test_result_previews_preserve_words_and_normalize_whitespace(self):
+        document = "A   short\nsummary " + "cinema " * 20
+        preview = document_preview(document)
+        self.assertLessEqual(len(preview), 100)
+        self.assertTrue(preview.endswith("cinema…"))
+        self.assertNotIn("  ", preview)
+
     def test_reranking_requests_a_larger_candidate_pool(self):
         import sys
         from pathlib import Path

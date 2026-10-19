@@ -18,6 +18,9 @@ class CoreSearchTests(unittest.TestCase):
         self.assertTrue(preview.endswith("cinema…"))
         self.assertNotIn("  ", preview)
 
+    def test_result_previews_remove_terminal_control_characters(self):
+        self.assertEqual(document_preview("Safe\x1b[2J title\u202esecret"), "Safe [2J title secret")
+
     def test_reranking_requests_a_larger_candidate_pool(self):
         import sys
         from pathlib import Path

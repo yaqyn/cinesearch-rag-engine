@@ -1,10 +1,13 @@
+import unicodedata
+
 SCORE_PRECISION = 4
 DOCUMENT_PREVIEW_LENGTH = 100
 
 
 def document_preview(document):
     """Return a compact excerpt without cutting the final word in half."""
-    compact = " ".join(document.split())
+    safe = "".join(" " if unicodedata.category(char).startswith("C") else char for char in document)
+    compact = " ".join(safe.split())
     if len(compact) <= DOCUMENT_PREVIEW_LENGTH:
         return compact
     prefix = compact[: DOCUMENT_PREVIEW_LENGTH - 1]

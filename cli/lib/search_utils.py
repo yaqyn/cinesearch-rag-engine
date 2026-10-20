@@ -1,4 +1,5 @@
 import unicodedata
+import re
 
 SCORE_PRECISION = 4
 DOCUMENT_PREVIEW_LENGTH = 100
@@ -6,6 +7,7 @@ DOCUMENT_PREVIEW_LENGTH = 100
 
 def document_preview(document):
     """Return a compact excerpt without cutting the final word in half."""
+    document = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", " ", document)
     safe = "".join(" " if unicodedata.category(char).startswith("C") else char for char in document)
     compact = " ".join(safe.split())
     if len(compact) <= DOCUMENT_PREVIEW_LENGTH:

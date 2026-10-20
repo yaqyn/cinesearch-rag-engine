@@ -19,7 +19,7 @@ class CoreSearchTests(unittest.TestCase):
         self.assertNotIn("  ", preview)
 
     def test_result_previews_remove_terminal_control_characters(self):
-        self.assertEqual(document_preview("Safe\x1b[2J title\u202esecret"), "Safe [2J title secret")
+        self.assertEqual(document_preview("Safe\x1b[2J title\u202esecret"), "Safe title secret")
 
     def test_reranking_requests_a_larger_candidate_pool(self):
         import sys

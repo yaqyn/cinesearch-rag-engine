@@ -91,6 +91,7 @@ def main(argv=None) -> None:
         return
     if not args.query.strip():
         parser.error("Enter a nonempty search query.")
+    args.query = args.query.strip()
     try:
         # Backend progress belongs on stderr, keeping JSON parseable.
         with contextlib.redirect_stdout(sys.stderr):

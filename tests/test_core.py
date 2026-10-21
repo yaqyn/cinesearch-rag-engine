@@ -80,6 +80,11 @@ class CoreSearchTests(unittest.TestCase):
                     self.assertEqual(error.exception.code, 2)
                     load.assert_not_called()
 
+    def test_search_trims_accidental_surrounding_whitespace(self):
+        with patch("cli.cinesearch.search_catalog", return_value=[]) as search, redirect_stderr(io.StringIO()), patch("sys.stdout", io.StringIO()):
+            main(["search", "  bear  ", "--mode", "keyword"])
+        search.assert_called_once_with("bear", "keyword", 5)
+
     def test_invalid_limits_fail_before_loading_data(self):
         for value in ["0", "-1", "invalid"]:
             with self.subTest(value=value), patch("cli.cinesearch.search_catalog") as load:

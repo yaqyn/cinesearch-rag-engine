@@ -21,6 +21,10 @@ class CoreSearchTests(unittest.TestCase):
     def test_result_previews_remove_terminal_control_characters(self):
         self.assertEqual(document_preview("Safe\x1b[2J title\u202esecret"), "Safe title secret")
 
+    def test_result_previews_remove_terminal_hyperlinks(self):
+        linked = "Watch \x1b]8;;https://example.test/secret\x07now\x1b]8;;\x07 please"
+        self.assertEqual(document_preview(linked), "Watch now please")
+
     def test_reranking_requests_a_larger_candidate_pool(self):
         import sys
         from pathlib import Path

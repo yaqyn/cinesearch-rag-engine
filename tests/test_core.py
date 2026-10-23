@@ -25,6 +25,9 @@ class CoreSearchTests(unittest.TestCase):
         linked = "Watch \x1b]8;;https://example.test/secret\x07now\x1b]8;;\x07 please"
         self.assertEqual(document_preview(linked), "Watch now please")
 
+    def test_result_previews_remove_unterminated_terminal_commands(self):
+        self.assertEqual(document_preview("Safe title\x1b]8;;https://secret.test"), "Safe title")
+
     def test_reranking_requests_a_larger_candidate_pool(self):
         import sys
         from pathlib import Path

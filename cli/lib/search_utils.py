@@ -3,7 +3,7 @@ import re
 
 SCORE_PRECISION = 4
 DOCUMENT_PREVIEW_LENGTH = 100
-ANSI_OSC_PATTERN = re.compile(r"\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)")
+ANSI_OSC_PATTERN = re.compile(r"\x1b\][^\x07\x1b]*(?:\x07|\x1b\\|$)")
 
 
 def document_preview(document):

@@ -3,13 +3,15 @@ import re
 
 SCORE_PRECISION = 4
 DOCUMENT_PREVIEW_LENGTH = 100
-ANSI_OSC_PATTERN = re.compile(r"\x1b\][^\x07\x1b]*(?:\x07|\x1b\\|$)")
+ANSI_OSC_PATTERN = re.compile(
+    r"(?:\x1b\]|\x9d)[^\x07\x1b\x9c]*(?:\x07|\x1b\\|\x9c|$)"
+)
 
 
 def document_preview(document):
     """Return a compact excerpt without cutting the final word in half."""
     document = ANSI_OSC_PATTERN.sub(" ", document)
-    document = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", " ", document)
+    document = re.sub(r"(?:\x1b\[|\x9b)[0-?]*[ -/]*[@-~]", " ", document)
     safe = "".join(" " if unicodedata.category(char).startswith("C") else char for char in document)
     compact = " ".join(safe.split())
     if len(compact) <= DOCUMENT_PREVIEW_LENGTH:

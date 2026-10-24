@@ -28,6 +28,12 @@ class CoreSearchTests(unittest.TestCase):
     def test_result_previews_remove_unterminated_terminal_commands(self):
         self.assertEqual(document_preview("Safe title\x1b]8;;https://secret.test"), "Safe title")
 
+    def test_result_previews_remove_c1_terminal_commands(self):
+        self.assertEqual(
+            document_preview("Safe\x9b2J title\x9d8;;https://secret.test\x9clink"),
+            "Safe title link",
+        )
+
     def test_reranking_requests_a_larger_candidate_pool(self):
         import sys
         from pathlib import Path

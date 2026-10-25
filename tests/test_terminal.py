@@ -23,7 +23,9 @@ class TerminalTests(unittest.TestCase):
             self.assertEqual(load_settings()["theme"], "cover")
 
     def test_dataset_cannot_emit_terminal_controls(self):
-        self.assertNotIn("\x1b", clean("title\x1b[2J"))
+        self.assertEqual(clean("title\x1b[2J after"), "title after")
+        self.assertEqual(clean("safe\x1b]8;;https://secret.test\x07link"), "safelink")
+        self.assertEqual(clean("safe\x9b31mred\x9b0m"), "safered")
         self.assertEqual(clean("فيلم\n映画"), "فيلم\n映画")
 
     def test_plain_mode_reads_full_description_and_exits(self):

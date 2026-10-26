@@ -18,6 +18,7 @@ THEMES = {
 def clean(value):
     """Do not interpret dataset text as terminal control sequences."""
     value = re.sub(r"(?:\x1b\]|\x9d)[^\x07\x1b\x9c]*(?:\x07|\x1b\\|\x9c|$)", "", str(value))
+    value = re.sub(r"(?:\x1b[P^_]|[\x90\x9e\x9f]).*?(?:\x1b\\|\x9c|$)", "", value, flags=re.DOTALL)
     value = re.sub(r"(?:\x1b\[|\x9b)[0-?]*[ -/]*[@-~]", "", value)
     return re.sub(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]", "", value)
 

@@ -26,6 +26,8 @@ class TerminalTests(unittest.TestCase):
         self.assertEqual(clean("title\x1b[2J after"), "title after")
         self.assertEqual(clean("safe\x1b]8;;https://secret.test\x07link"), "safelink")
         self.assertEqual(clean("safe\x9b31mred\x9b0m"), "safered")
+        self.assertEqual(clean("safe\x1bPprivate payload\x1b\\text"), "safetext")
+        self.assertEqual(clean("safe\x9fprivate payload\x9ctext"), "safetext")
         self.assertEqual(clean("فيلم\n映画"), "فيلم\n映画")
 
     def test_plain_mode_reads_full_description_and_exits(self):

@@ -33,10 +33,14 @@ def download_dataset(destination: Path):
             not isinstance(movie, dict)
             or not isinstance(movie.get("id"), int)
             or not isinstance(movie.get("title"), str)
+            or not movie.get("title", "").strip()
             or not isinstance(movie.get("description"), str)
             for movie in movies
         ):
             raise ValueError("Downloaded dataset must contain movie IDs, titles, and descriptions.")
+        movie_ids = [movie["id"] for movie in movies]
+        if len(movie_ids) != len(set(movie_ids)):
+            raise ValueError("Downloaded dataset must contain unique movie IDs.")
         temporary.replace(destination)
     finally:
         if temporary is not None:

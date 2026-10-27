@@ -1,5 +1,7 @@
 import unittest
 import io
+import json
+import tempfile
 from contextlib import redirect_stderr
 from unittest.mock import patch
 from cli.cinesearch import main
@@ -11,6 +13,26 @@ from cli.lib.search_utils import document_preview
 
 
 class CoreSearchTests(unittest.TestCase):
+    def test_health_json_reports_sorted_artifacts_and_dataset_state(self):
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dataset = root / "movies.json"
+            cache = root / "cache"
+            dataset.write_text("{}")
+            cache.mkdir()
+            (cache / "zeta.json").touch()
+            (cache / "alpha.json").touch()
+            output = io.StringIO()
+            with patch.multiple("cli.lib.config", MOVIES_PATH=dataset, CACHE_DIR=cache), patch(
+                "sys.stdout", output
+            ):
+                main(["health", "--json"])
+        report = json.loads(output.getvalue())
+        self.assertTrue(report["dataset_ready"])
+        self.assertEqual(report["artifacts"], ["alpha.json", "zeta.json"])
+        self.assertEqual(report["dataset_path"], str(dataset.resolve()))
+
     def test_result_previews_preserve_words_and_normalize_whitespace(self):
         document = "A   short\nsummary " + "cinema " * 20
         preview = document_preview(document)

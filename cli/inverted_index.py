@@ -111,7 +111,9 @@ class InvertedIndex:
         return self.get_bm25_tf(doc_id, term) * self.get_bm25_idf(term)
 
     def bm25_search(self, query, limit):
-        query_tokens = tokenize_text(query)
+        # Repeating a word in a natural-language query should not multiply its
+        # influence. Keep the user's first-seen order while removing repeats.
+        query_tokens = list(dict.fromkeys(tokenize_text(query)))
         scores = {doc_id: 0.0 for doc_id in self.docmap}
         average_length = self.__get_avg_doc_length()
         # Corpus-wide statistics are constant throughout a search. Visit only

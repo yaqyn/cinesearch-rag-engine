@@ -119,6 +119,18 @@ class CoreSearchTests(unittest.TestCase):
         self.assertEqual([doc["id"] for doc, _ in index.bm25_search("bear", 5)], [1])
         self.assertEqual(index.bm25_search("missing", 5), [])
 
+    def test_bm25_repeated_terms_do_not_distort_ranking_scores(self):
+        from collections import Counter
+        from cli.inverted_index import InvertedIndex
+        index = InvertedIndex()
+        index.docmap = {1: {"id": 1}}
+        index.index = {"bear": {1}}
+        index.term_frequencies = {1: Counter(bear=2)}
+        index.doc_lengths = {1: 2}
+        single = index.bm25_search("bear", 5)
+        repeated = index.bm25_search("bear bear bears", 5)
+        self.assertEqual(repeated, single)
+
     def test_normalization_handles_empty_and_constant_scores(self):
         self.assertEqual(normalize_scores([]), [])
         self.assertEqual(normalize_scores([4.0, 4.0]), [1.0, 1.0])
@@ -151,7 +163,7 @@ class KeywordPerformanceRegressionTests(unittest.TestCase):
         index.index = {"bear": {1, 2}, "forest": {2}}
         index.term_frequencies = {1: Counter(bear=2), 2: Counter(bear=1, forest=1), 3: Counter(other=1)}
         index.doc_lengths = {1: 2, 2: 2, 3: 1}
-        expected = {doc_id: sum(index.bm25(doc_id, token) for token in ["bear", "bear", "forest"])
+        expected = {doc_id: sum(index.bm25(doc_id, token) for token in ["bear", "forest"])
                     for doc_id in index.docmap}
         actual = index.bm25_search("bear bear forest", 3)
         for doc, score in actual:

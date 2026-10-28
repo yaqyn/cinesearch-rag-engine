@@ -108,6 +108,17 @@ class CoreSearchTests(unittest.TestCase):
     def test_tokenization_is_normalized_and_stemmed(self):
         self.assertEqual(tokenize_text("The bears, running!"), ["bear", "run"])
 
+    def test_bm25_omits_documents_that_do_not_match_the_query(self):
+        from collections import Counter
+        from cli.inverted_index import InvertedIndex
+        index = InvertedIndex()
+        index.docmap = {1: {"id": 1}, 2: {"id": 2}}
+        index.index = {"bear": {1}}
+        index.term_frequencies = {1: Counter(bear=1), 2: Counter(ocean=1)}
+        index.doc_lengths = {1: 1, 2: 1}
+        self.assertEqual([doc["id"] for doc, _ in index.bm25_search("bear", 5)], [1])
+        self.assertEqual(index.bm25_search("missing", 5), [])
+
     def test_normalization_handles_empty_and_constant_scores(self):
         self.assertEqual(normalize_scores([]), [])
         self.assertEqual(normalize_scores([4.0, 4.0]), [1.0, 1.0])
@@ -145,4 +156,4 @@ class KeywordPerformanceRegressionTests(unittest.TestCase):
         actual = index.bm25_search("bear bear forest", 3)
         for doc, score in actual:
             self.assertAlmostEqual(score, expected[doc["id"]])
-        self.assertEqual([doc["id"] for doc, _ in actual], [2, 1, 3])
+        self.assertEqual([doc["id"] for doc, _ in actual], [2, 1])

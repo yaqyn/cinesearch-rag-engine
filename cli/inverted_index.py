@@ -127,7 +127,9 @@ class InvertedIndex:
                     frequency + BM25_K1 * normalization)
 
         ranked_documents = sorted(
-            scores.items(), key=lambda item: item[1], reverse=True
+            ((doc_id, score) for doc_id, score in scores.items() if score > 0),
+            key=lambda item: item[1],
+            reverse=True,
         )[:limit]
         return [(self.docmap[doc_id], score) for doc_id, score in ranked_documents]
 

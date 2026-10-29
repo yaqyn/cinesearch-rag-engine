@@ -12,9 +12,20 @@ from functools import lru_cache
 def _keyword_index(signature):
     """Reuse loaded artifacts until an index file changes on disk."""
     from cli.inverted_index import InvertedIndex
-    from cli.lib.config import INDEX_PATH
+    from cli.lib.config import (
+        DOC_LENGTHS_PATH,
+        DOCMAP_PATH,
+        INDEX_PATH,
+        TERM_FREQUENCIES_PATH,
+    )
     search = InvertedIndex()
-    if INDEX_PATH.exists():
+    artifacts = (
+        INDEX_PATH,
+        DOCMAP_PATH,
+        TERM_FREQUENCIES_PATH,
+        DOC_LENGTHS_PATH,
+    )
+    if all(path.is_file() for path in artifacts):
         search.load()
     else:
         search.build()
@@ -27,9 +38,21 @@ def search_catalog(query, mode, limit):
     from cli.lib.config import INDEX_PATH
     if mode == "keyword":
         from cli.lib.config import DOCMAP_PATH, TERM_FREQUENCIES_PATH, DOC_LENGTHS_PATH
-        signature = tuple((str(path), path.stat().st_mtime_ns, path.stat().st_size)
-                          for path in (INDEX_PATH, DOCMAP_PATH, TERM_FREQUENCIES_PATH, DOC_LENGTHS_PATH)
-                          if path.exists())
+        artifacts = (
+            INDEX_PATH,
+            DOCMAP_PATH,
+            TERM_FREQUENCIES_PATH,
+            DOC_LENGTHS_PATH,
+        )
+        signature = tuple(
+            (
+                str(path),
+                path.is_file(),
+                path.stat().st_mtime_ns if path.is_file() else None,
+                path.stat().st_size if path.is_file() else None,
+            )
+            for path in artifacts
+        )
         search = _keyword_index(signature)
         return [{"title": doc["title"], "description": doc["description"], "score": score}
                 for doc, score in search.bm25_search(query, limit)]

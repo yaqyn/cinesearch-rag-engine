@@ -2,6 +2,7 @@ import unittest
 import io
 import json
 import tempfile
+from pathlib import Path
 from contextlib import redirect_stderr
 from unittest.mock import patch
 from cli.cinesearch import main
@@ -13,6 +14,51 @@ from cli.lib.search_utils import document_preview
 
 
 class CoreSearchTests(unittest.TestCase):
+    def test_keyword_search_rebuilds_an_incomplete_index(self):
+        from cli.cinesearch import _keyword_index, search_catalog
+        from cli.inverted_index import InvertedIndex
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cache = root / "cache"
+            cache.mkdir()
+            paths = {
+                "INDEX_PATH": cache / "index.pkl",
+                "DOCMAP_PATH": cache / "docmap.pkl",
+                "TERM_FREQUENCIES_PATH": cache / "term_frequencies.pkl",
+                "DOC_LENGTHS_PATH": cache / "doc_lengths.pkl",
+                "MOVIES_PATH": root / "movies.json",
+            }
+            paths["MOVIES_PATH"].write_text(
+                json.dumps({"movies": [{
+                    "id": 1,
+                    "title": "Moon Colony",
+                    "description": "A station above the moon.",
+                }]}),
+                encoding="utf-8",
+            )
+            ensure_cache_dir = patch(
+                "cli.inverted_index.ensure_cache_dir",
+                side_effect=lambda: cache.mkdir(exist_ok=True),
+            )
+            with patch.multiple("cli.inverted_index", **paths), ensure_cache_dir:
+                index = InvertedIndex()
+                index.build()
+                index.save()
+
+            _keyword_index.cache_clear()
+            try:
+                with (
+                    patch.multiple("cli.lib.config", **paths),
+                    patch.multiple("cli.inverted_index", **paths),
+                ):
+                    paths["DOCMAP_PATH"].unlink()
+                    results = search_catalog("moon", "keyword", 5)
+                self.assertEqual([row["title"] for row in results], ["Moon Colony"])
+                self.assertTrue(paths["DOCMAP_PATH"].is_file())
+            finally:
+                _keyword_index.cache_clear()
+
     def test_health_json_reports_sorted_artifacts_and_dataset_state(self):
         from pathlib import Path
         with tempfile.TemporaryDirectory() as directory:

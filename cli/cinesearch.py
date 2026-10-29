@@ -70,7 +70,8 @@ def main(argv=None) -> None:
     search_parser.add_argument("--limit", type=positive_limit, default=5)
     search_parser.add_argument("--mode", choices=("hybrid", "keyword", "semantic"), default="hybrid")
     search_parser.add_argument("--json", action="store_true", help="Emit results as JSON")
-    subparsers.add_parser("health", help="Inspect local search artifacts")
+    health_parser = subparsers.add_parser("health", help="Inspect local search artifacts")
+    health_parser.add_argument("--json", action="store_true", help="Emit machine-readable health information")
     args = parser.parse_args(argv)
     if args.command is None or args.command == "browse":
         if args.command == "browse" and args.plain:
@@ -85,6 +86,14 @@ def main(argv=None) -> None:
     if args.command == "health":
         from cli.lib.config import CACHE_DIR, MOVIES_PATH
         artifacts = sorted(path.name for path in CACHE_DIR.glob("*")) if CACHE_DIR.exists() else []
+        if args.json:
+            print(json.dumps({
+                "dataset_ready": MOVIES_PATH.exists(),
+                "dataset_path": str(MOVIES_PATH.resolve()),
+                "cache_directory": str(CACHE_DIR.resolve()),
+                "artifacts": artifacts,
+            }, indent=2))
+            return
         print(f"Movie dataset: {'ready' if MOVIES_PATH.exists() else 'missing: ' + str(MOVIES_PATH)}")
         print(f"Cache directory: {CACHE_DIR}")
         print(f"Artifacts: {', '.join(artifacts) if artifacts else 'none'}")

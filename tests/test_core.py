@@ -179,6 +179,12 @@ class CoreSearchTests(unittest.TestCase):
         with self.assertRaises(Exception):
             nonnegative_score("-0.1")
 
+    def test_compact_search_emits_one_result_per_line(self):
+        rows = [{"title": "Bear\nMovie", "description": "forest", "score": 0.75}]
+        with patch("cli.cinesearch.search_catalog", return_value=rows), patch("sys.stdout", new_callable=io.StringIO) as output:
+            main(["search", "bear", "--mode", "keyword", "--compact"])
+        self.assertEqual(output.getvalue(), "Bear Movie\t0.7500\n")
+
     def test_invalid_limits_fail_before_loading_data(self):
         for value in ["0", "-1", "invalid"]:
             with self.subTest(value=value), patch("cli.cinesearch.search_catalog") as load:

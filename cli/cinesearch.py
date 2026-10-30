@@ -100,6 +100,8 @@ def main(argv=None) -> None:
     search_parser.add_argument("--limit", type=positive_limit, default=5)
     search_parser.add_argument("--mode", choices=("hybrid", "keyword", "semantic"), default="hybrid")
     search_parser.add_argument("--json", action="store_true", help="Emit results as JSON")
+    search_parser.add_argument("--compact", action="store_true",
+                               help="Emit one tab-separated result per line")
     search_parser.add_argument("--min-score", type=nonnegative_score, default=0.0,
                                help="Hide results below this score")
     health_parser = subparsers.add_parser("health", help="Inspect local search artifacts")
@@ -141,6 +143,11 @@ def main(argv=None) -> None:
         if args.json:
             rows = [row.get("raw", {"title": row["title"], "score": row["score"], "document": row["description"]}) for row in results]
             print(json.dumps(rows, indent=2, default=str))
+            return
+        if args.compact:
+            for row in results:
+                title = " ".join(clean(row["title"]).split())
+                print(f"{title}\t{row['score']:.4f}")
             return
         print(f"CineSearch · {len(results)} matches · {args.mode}\n")
         if not results:

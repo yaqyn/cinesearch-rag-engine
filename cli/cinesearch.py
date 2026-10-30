@@ -77,6 +77,13 @@ def positive_limit(value):
     return number
 
 
+def nonnegative_score(value):
+    number = float(value)
+    if number < 0:
+        raise argparse.ArgumentTypeError("Choose a minimum score of zero or greater.")
+    return number
+
+
 def main(argv=None) -> None:
     # Also support `python cli/cinesearch.py` from a source checkout.
     if not __package__:
@@ -93,6 +100,8 @@ def main(argv=None) -> None:
     search_parser.add_argument("--limit", type=positive_limit, default=5)
     search_parser.add_argument("--mode", choices=("hybrid", "keyword", "semantic"), default="hybrid")
     search_parser.add_argument("--json", action="store_true", help="Emit results as JSON")
+    search_parser.add_argument("--min-score", type=nonnegative_score, default=0.0,
+                               help="Hide results below this score")
     health_parser = subparsers.add_parser("health", help="Inspect local search artifacts")
     health_parser.add_argument("--json", action="store_true", help="Emit machine-readable health information")
     args = parser.parse_args(argv)
@@ -128,6 +137,7 @@ def main(argv=None) -> None:
         # Backend progress belongs on stderr, keeping JSON parseable.
         with contextlib.redirect_stdout(sys.stderr):
             results = search_catalog(args.query, args.mode, args.limit)
+        results = [row for row in results if row["score"] >= args.min_score]
         if args.json:
             rows = [row.get("raw", {"title": row["title"], "score": row["score"], "document": row["description"]}) for row in results]
             print(json.dumps(rows, indent=2, default=str))

@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 from contextlib import redirect_stderr
 from unittest.mock import patch
-from cli.cinesearch import main
+from cli.cinesearch import main, nonnegative_score
 
 from cli.inverted_index import tokenize_text
 from cli.lib.hybrid_search import normalize_scores, rrf_score
@@ -165,6 +165,19 @@ class CoreSearchTests(unittest.TestCase):
         with patch("cli.cinesearch.search_catalog", return_value=[]) as search, redirect_stderr(io.StringIO()), patch("sys.stdout", io.StringIO()):
             main(["search", "  bear  ", "--mode", "keyword"])
         search.assert_called_once_with("bear", "keyword", 5)
+
+    def test_search_can_filter_by_minimum_score(self):
+        rows = [
+            {"title": "Low", "description": "weak", "score": 0.2},
+            {"title": "High", "description": "strong", "score": 0.8},
+        ]
+        with patch("cli.cinesearch.search_catalog", return_value=rows), patch("sys.stdout", new_callable=io.StringIO) as output:
+            main(["search", "bear", "--mode", "keyword", "--min-score", "0.5", "--json"])
+        result = json.loads(output.getvalue())
+        self.assertEqual([row["title"] for row in result], ["High"])
+        self.assertEqual(nonnegative_score("0"), 0)
+        with self.assertRaises(Exception):
+            nonnegative_score("-0.1")
 
     def test_invalid_limits_fail_before_loading_data(self):
         for value in ["0", "-1", "invalid"]:

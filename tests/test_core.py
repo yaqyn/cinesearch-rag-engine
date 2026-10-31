@@ -195,6 +195,26 @@ class CoreSearchTests(unittest.TestCase):
         objects = [json.loads(line) for line in output.getvalue().splitlines()]
         self.assertEqual([row["title"] for row in objects], ["Bear", "Moon"])
 
+    def test_strict_health_fails_when_required_artifacts_are_missing(self):
+        from cli.lib import config
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dataset = root / "movies.json"
+            dataset.write_text("{}", encoding="utf-8")
+            paths = {
+                "MOVIES_PATH": dataset,
+                "CACHE_DIR": root / "cache",
+                "INDEX_PATH": root / "cache/index.pkl",
+                "DOCMAP_PATH": root / "cache/docmap.pkl",
+                "TERM_FREQUENCIES_PATH": root / "cache/terms.pkl",
+                "DOC_LENGTHS_PATH": root / "cache/lengths.pkl",
+            }
+            paths["CACHE_DIR"].mkdir()
+            with patch.multiple(config, **paths), patch("sys.stdout", io.StringIO()):
+                with self.assertRaises(SystemExit) as error:
+                    main(["health", "--strict"])
+        self.assertEqual(error.exception.code, 1)
+
 
     def test_invalid_limits_fail_before_loading_data(self):
         for value in ["0", "-1", "invalid"]:

@@ -107,6 +107,8 @@ def main(argv=None) -> None:
                                help="Hide results below this score")
     health_parser = subparsers.add_parser("health", help="Inspect local search artifacts")
     health_parser.add_argument("--json", action="store_true", help="Emit machine-readable health information")
+    health_parser.add_argument("--strict", action="store_true",
+                               help="Exit unsuccessfully when the dataset or index artifacts are missing")
     args = parser.parse_args(argv)
     if args.command is None or args.command == "browse":
         if args.command == "browse" and args.plain:
@@ -119,8 +121,10 @@ def main(argv=None) -> None:
             parser.print_help()
         return
     if args.command == "health":
-        from cli.lib.config import CACHE_DIR, MOVIES_PATH
+        from cli.lib.config import CACHE_DIR, DOC_LENGTHS_PATH, DOCMAP_PATH, INDEX_PATH, MOVIES_PATH, TERM_FREQUENCIES_PATH
         artifacts = sorted(path.name for path in CACHE_DIR.glob("*")) if CACHE_DIR.exists() else []
+        required = (INDEX_PATH, DOCMAP_PATH, TERM_FREQUENCIES_PATH, DOC_LENGTHS_PATH)
+        ready = MOVIES_PATH.exists() and all(path.is_file() for path in required)
         if args.json:
             print(json.dumps({
                 "dataset_ready": MOVIES_PATH.exists(),
@@ -128,10 +132,14 @@ def main(argv=None) -> None:
                 "cache_directory": str(CACHE_DIR.resolve()),
                 "artifacts": artifacts,
             }, indent=2))
+            if args.strict and not ready:
+                raise SystemExit(1)
             return
         print(f"Movie dataset: {'ready' if MOVIES_PATH.exists() else 'missing: ' + str(MOVIES_PATH)}")
         print(f"Cache directory: {CACHE_DIR}")
         print(f"Artifacts: {', '.join(artifacts) if artifacts else 'none'}")
+        if args.strict and not ready:
+            raise SystemExit(1)
         return
     if not args.query.strip():
         parser.error("Enter a nonempty search query.")

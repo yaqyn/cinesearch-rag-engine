@@ -185,6 +185,37 @@ class CoreSearchTests(unittest.TestCase):
             main(["search", "bear", "--mode", "keyword", "--compact"])
         self.assertEqual(output.getvalue(), "Bear Movie\t0.7500\n")
 
+    def test_jsonl_search_emits_one_object_per_result(self):
+        rows = [
+            {"title": "Bear", "description": "forest", "score": 0.75},
+            {"title": "Moon", "description": "space", "score": 0.5},
+        ]
+        with patch("cli.cinesearch.search_catalog", return_value=rows), patch("sys.stdout", new_callable=io.StringIO) as output:
+            main(["search", "adventure", "--mode", "keyword", "--jsonl"])
+        objects = [json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertEqual([row["title"] for row in objects], ["Bear", "Moon"])
+
+    def test_strict_health_fails_when_required_artifacts_are_missing(self):
+        from cli.lib import config
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dataset = root / "movies.json"
+            dataset.write_text("{}", encoding="utf-8")
+            paths = {
+                "MOVIES_PATH": dataset,
+                "CACHE_DIR": root / "cache",
+                "INDEX_PATH": root / "cache/index.pkl",
+                "DOCMAP_PATH": root / "cache/docmap.pkl",
+                "TERM_FREQUENCIES_PATH": root / "cache/terms.pkl",
+                "DOC_LENGTHS_PATH": root / "cache/lengths.pkl",
+            }
+            paths["CACHE_DIR"].mkdir()
+            with patch.multiple(config, **paths), patch("sys.stdout", io.StringIO()):
+                with self.assertRaises(SystemExit) as error:
+                    main(["health", "--strict"])
+        self.assertEqual(error.exception.code, 1)
+
+
     def test_invalid_limits_fail_before_loading_data(self):
         for value in ["0", "-1", "invalid"]:
             with self.subTest(value=value), patch("cli.cinesearch.search_catalog") as load:

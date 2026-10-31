@@ -185,6 +185,17 @@ class CoreSearchTests(unittest.TestCase):
             main(["search", "bear", "--mode", "keyword", "--compact"])
         self.assertEqual(output.getvalue(), "Bear Movie\t0.7500\n")
 
+    def test_jsonl_search_emits_one_object_per_result(self):
+        rows = [
+            {"title": "Bear", "description": "forest", "score": 0.75},
+            {"title": "Moon", "description": "space", "score": 0.5},
+        ]
+        with patch("cli.cinesearch.search_catalog", return_value=rows), patch("sys.stdout", new_callable=io.StringIO) as output:
+            main(["search", "adventure", "--mode", "keyword", "--jsonl"])
+        objects = [json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertEqual([row["title"] for row in objects], ["Bear", "Moon"])
+
+
     def test_invalid_limits_fail_before_loading_data(self):
         for value in ["0", "-1", "invalid"]:
             with self.subTest(value=value), patch("cli.cinesearch.search_catalog") as load:

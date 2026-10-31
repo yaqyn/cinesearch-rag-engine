@@ -100,6 +100,7 @@ def main(argv=None) -> None:
     search_parser.add_argument("--limit", type=positive_limit, default=5)
     search_parser.add_argument("--mode", choices=("hybrid", "keyword", "semantic"), default="hybrid")
     search_parser.add_argument("--json", action="store_true", help="Emit results as JSON")
+    search_parser.add_argument("--jsonl", action="store_true", help="Emit one JSON object per result")
     search_parser.add_argument("--compact", action="store_true",
                                help="Emit one tab-separated result per line")
     search_parser.add_argument("--min-score", type=nonnegative_score, default=0.0,
@@ -140,9 +141,13 @@ def main(argv=None) -> None:
         with contextlib.redirect_stdout(sys.stderr):
             results = search_catalog(args.query, args.mode, args.limit)
         results = [row for row in results if row["score"] >= args.min_score]
-        if args.json:
+        if args.json or args.jsonl:
             rows = [row.get("raw", {"title": row["title"], "score": row["score"], "document": row["description"]}) for row in results]
-            print(json.dumps(rows, indent=2, default=str))
+            if args.jsonl:
+                for row in rows:
+                    print(json.dumps(row, default=str, ensure_ascii=False))
+            else:
+                print(json.dumps(rows, indent=2, default=str))
             return
         if args.compact:
             for row in results:

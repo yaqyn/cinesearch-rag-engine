@@ -205,6 +205,12 @@ class CoreSearchTests(unittest.TestCase):
         objects = [json.loads(line) for line in output.getvalue().splitlines()]
         self.assertEqual([row["title"] for row in objects], ["Bear", "Moon"])
 
+    def test_titles_only_search_is_line_oriented_and_sanitized(self):
+        rows = [{"title": "Bear\nMovie", "description": "forest", "score": 0.75}]
+        with patch("cli.cinesearch.search_catalog", return_value=rows), patch("sys.stdout", new_callable=io.StringIO) as output:
+            main(["search", "bear", "--mode", "keyword", "--titles-only"])
+        self.assertEqual(output.getvalue(), "Bear Movie\n")
+
     def test_strict_health_fails_when_required_artifacts_are_missing(self):
         from cli.lib import config
         with tempfile.TemporaryDirectory() as directory:

@@ -112,6 +112,8 @@ def main(argv=None) -> None:
     search_parser.add_argument("--jsonl", action="store_true", help="Emit one JSON object per result")
     search_parser.add_argument("--compact", action="store_true",
                                help="Emit one tab-separated result per line")
+    search_parser.add_argument("--titles-only", action="store_true",
+                               help="Emit one sanitized movie title per line")
     search_parser.add_argument("--min-score", type=nonnegative_score, default=0.0,
                                help="Hide results below this score")
     health_parser = subparsers.add_parser("health", help="Inspect local search artifacts")
@@ -173,6 +175,10 @@ def main(argv=None) -> None:
             for row in results:
                 title = " ".join(clean(row["title"]).split())
                 print(f"{title}\t{row['score']:.4f}")
+            return
+        if args.titles_only:
+            for row in results:
+                print(" ".join(clean(row["title"]).split()))
             return
         print(f"CineSearch · {len(results)} matches · {args.mode}\n")
         if not results:

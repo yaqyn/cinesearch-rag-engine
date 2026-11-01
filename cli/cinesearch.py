@@ -84,6 +84,13 @@ def nonnegative_score(value):
     return number
 
 
+def nonnegative_offset(value):
+    number = int(value)
+    if number < 0 or number > 99:
+        raise argparse.ArgumentTypeError("Choose a result offset between 0 and 99.")
+    return number
+
+
 def main(argv=None) -> None:
     # Also support `python cli/cinesearch.py` from a source checkout.
     if not __package__:
@@ -98,6 +105,8 @@ def main(argv=None) -> None:
     search_parser = subparsers.add_parser("search", help="Search the movie catalog")
     search_parser.add_argument("query")
     search_parser.add_argument("--limit", type=positive_limit, default=5)
+    search_parser.add_argument("--offset", type=nonnegative_offset, default=0,
+                               help="Skip the first matching results")
     search_parser.add_argument("--mode", choices=("hybrid", "keyword", "semantic"), default="hybrid")
     search_parser.add_argument("--json", action="store_true", help="Emit results as JSON")
     search_parser.add_argument("--jsonl", action="store_true", help="Emit one JSON object per result")
@@ -144,10 +153,13 @@ def main(argv=None) -> None:
     if not args.query.strip():
         parser.error("Enter a nonempty search query.")
     args.query = args.query.strip()
+    if args.offset + args.limit > 100:
+        parser.error("The result offset and limit together cannot exceed 100.")
     try:
         # Backend progress belongs on stderr, keeping JSON parseable.
         with contextlib.redirect_stdout(sys.stderr):
-            results = search_catalog(args.query, args.mode, args.limit)
+            results = search_catalog(args.query, args.mode, args.limit + args.offset)
+        results = results[args.offset:]
         results = [row for row in results if row["score"] >= args.min_score]
         if args.json or args.jsonl:
             rows = [row.get("raw", {"title": row["title"], "score": row["score"], "document": row["description"]}) for row in results]

@@ -185,6 +185,16 @@ class CoreSearchTests(unittest.TestCase):
             main(["search", "bear", "--mode", "keyword", "--compact"])
         self.assertEqual(output.getvalue(), "Bear Movie\t0.7500\n")
 
+    def test_search_can_skip_leading_results(self):
+        rows = [
+            {"title": title, "description": "", "score": score}
+            for title, score in [("First", 0.9), ("Second", 0.8), ("Third", 0.7)]
+        ]
+        with patch("cli.cinesearch.search_catalog", return_value=rows) as search, patch("sys.stdout", new_callable=io.StringIO) as output:
+            main(["search", "bear", "--mode", "keyword", "--offset", "1", "--limit", "2", "--json"])
+        search.assert_called_once_with("bear", "keyword", 3)
+        self.assertEqual([row["title"] for row in json.loads(output.getvalue())], ["Second", "Third"])
+
     def test_jsonl_search_emits_one_object_per_result(self):
         rows = [
             {"title": "Bear", "description": "forest", "score": 0.75},

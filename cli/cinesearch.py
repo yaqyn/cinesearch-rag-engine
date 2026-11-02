@@ -137,13 +137,16 @@ def main(argv=None) -> None:
         from cli.lib.config import CACHE_DIR, DOC_LENGTHS_PATH, DOCMAP_PATH, INDEX_PATH, MOVIES_PATH, TERM_FREQUENCIES_PATH
         artifacts = sorted(path.name for path in CACHE_DIR.glob("*")) if CACHE_DIR.exists() else []
         required = (INDEX_PATH, DOCMAP_PATH, TERM_FREQUENCIES_PATH, DOC_LENGTHS_PATH)
-        ready = MOVIES_PATH.exists() and all(path.is_file() for path in required)
+        missing_artifacts = [path.name for path in required if not path.is_file()]
+        ready = MOVIES_PATH.exists() and not missing_artifacts
         if args.json:
             print(json.dumps({
                 "dataset_ready": MOVIES_PATH.exists(),
                 "dataset_path": str(MOVIES_PATH.resolve()),
                 "cache_directory": str(CACHE_DIR.resolve()),
                 "artifacts": artifacts,
+                "search_ready": ready,
+                "missing_artifacts": missing_artifacts,
             }, indent=2))
             if args.strict and not ready:
                 raise SystemExit(1)

@@ -70,7 +70,13 @@ class CoreSearchTests(unittest.TestCase):
             (cache / "zeta.json").touch()
             (cache / "alpha.json").touch()
             output = io.StringIO()
-            with patch.multiple("cli.lib.config", MOVIES_PATH=dataset, CACHE_DIR=cache), patch(
+            required = {
+                "INDEX_PATH": cache / "index.pkl",
+                "DOCMAP_PATH": cache / "docmap.pkl",
+                "TERM_FREQUENCIES_PATH": cache / "term_frequencies.pkl",
+                "DOC_LENGTHS_PATH": cache / "doc_lengths.pkl",
+            }
+            with patch.multiple("cli.lib.config", MOVIES_PATH=dataset, CACHE_DIR=cache, **required), patch(
                 "sys.stdout", output
             ):
                 main(["health", "--json"])
@@ -78,6 +84,11 @@ class CoreSearchTests(unittest.TestCase):
         self.assertTrue(report["dataset_ready"])
         self.assertEqual(report["artifacts"], ["alpha.json", "zeta.json"])
         self.assertEqual(report["dataset_path"], str(dataset.resolve()))
+        self.assertFalse(report["search_ready"])
+        self.assertEqual(
+            set(report["missing_artifacts"]),
+            {"index.pkl", "docmap.pkl", "term_frequencies.pkl", "doc_lengths.pkl"},
+        )
 
     def test_result_previews_preserve_words_and_normalize_whitespace(self):
         document = "A   short\nsummary " + "cinema " * 20

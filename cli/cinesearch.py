@@ -116,6 +116,8 @@ def main(argv=None) -> None:
                                help="Emit one sanitized movie title per line")
     search_parser.add_argument("--min-score", type=nonnegative_score, default=0.0,
                                help="Hide results below this score")
+    search_parser.add_argument("--require-results", action="store_true",
+                               help="Exit unsuccessfully when no results match")
     health_parser = subparsers.add_parser("health", help="Inspect local search artifacts")
     health_parser.add_argument("--json", action="store_true", help="Emit machine-readable health information")
     health_parser.add_argument("--strict", action="store_true",
@@ -183,6 +185,8 @@ def main(argv=None) -> None:
         print(f"CineSearch · {len(results)} matches · {args.mode}\n")
         if not results:
             print("No matches. Try fewer words or another --mode.")
+            if args.require_results:
+                raise SystemExit(1)
         for index, row in enumerate(results, 1):
             print(f"{index}. {clean(row['title'])} (score: {row['score']:.4f})")
             print(textwrap.fill(clean(row['description']), width=78, initial_indent="   ", subsequent_indent="   "))

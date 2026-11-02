@@ -211,6 +211,14 @@ class CoreSearchTests(unittest.TestCase):
             main(["search", "bear", "--mode", "keyword", "--titles-only"])
         self.assertEqual(output.getvalue(), "Bear Movie\n")
 
+    def test_search_can_require_at_least_one_result(self):
+        with patch("cli.cinesearch.search_catalog", return_value=[]), patch(
+            "sys.stdout", new_callable=io.StringIO
+        ) as output, self.assertRaises(SystemExit) as error:
+            main(["search", "missing", "--mode", "keyword", "--require-results"])
+        self.assertEqual(error.exception.code, 1)
+        self.assertIn("No matches", output.getvalue())
+
     def test_strict_health_fails_when_required_artifacts_are_missing(self):
         from cli.lib import config
         with tempfile.TemporaryDirectory() as directory:

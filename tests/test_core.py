@@ -230,6 +230,15 @@ class CoreSearchTests(unittest.TestCase):
         self.assertEqual(error.exception.code, 1)
         self.assertIn("No matches", output.getvalue())
 
+    def test_search_can_exclude_exact_titles(self):
+        rows = [
+            {"title": "Bear", "description": "forest", "score": 0.9},
+            {"title": "Moon", "description": "space", "score": 0.8},
+        ]
+        with patch("cli.cinesearch.search_catalog", return_value=rows), patch("sys.stdout", new_callable=io.StringIO) as output:
+            main(["search", "adventure", "--mode", "keyword", "--exclude-title", " bear ", "--json"])
+        self.assertEqual([row["title"] for row in json.loads(output.getvalue())], ["Moon"])
+
     def test_strict_health_fails_when_required_artifacts_are_missing(self):
         from cli.lib import config
         with tempfile.TemporaryDirectory() as directory:

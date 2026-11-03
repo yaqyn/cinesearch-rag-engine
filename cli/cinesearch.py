@@ -118,6 +118,8 @@ def main(argv=None) -> None:
                                help="Hide results below this score")
     search_parser.add_argument("--require-results", action="store_true",
                                help="Exit unsuccessfully when no results match")
+    search_parser.add_argument("--exclude-title", action="append", default=[],
+                               help="Hide an exact movie title; repeatable and case-insensitive")
     health_parser = subparsers.add_parser("health", help="Inspect local search artifacts")
     health_parser.add_argument("--json", action="store_true", help="Emit machine-readable health information")
     health_parser.add_argument("--strict", action="store_true",
@@ -168,6 +170,8 @@ def main(argv=None) -> None:
             results = search_catalog(args.query, args.mode, args.limit + args.offset)
         results = results[args.offset:]
         results = [row for row in results if row["score"] >= args.min_score]
+        excluded_titles = {title.strip().casefold() for title in args.exclude_title}
+        results = [row for row in results if row["title"].strip().casefold() not in excluded_titles]
         if args.json or args.jsonl:
             rows = [row.get("raw", {"title": row["title"], "score": row["score"], "document": row["description"]}) for row in results]
             if args.jsonl:

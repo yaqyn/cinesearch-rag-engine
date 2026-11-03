@@ -239,6 +239,16 @@ class CoreSearchTests(unittest.TestCase):
             main(["search", "adventure", "--mode", "keyword", "--exclude-title", " bear ", "--json"])
         self.assertEqual([row["title"] for row in json.loads(output.getvalue())], ["Moon"])
 
+    def test_search_can_collapse_duplicate_titles(self):
+        rows = [
+            {"title": " Bear ", "description": "first", "score": 0.9},
+            {"title": "bear", "description": "duplicate", "score": 0.8},
+            {"title": "Moon", "description": "different", "score": 0.7},
+        ]
+        with patch("cli.cinesearch.search_catalog", return_value=rows), patch("sys.stdout", new_callable=io.StringIO) as output:
+            main(["search", "adventure", "--mode", "keyword", "--unique-titles", "--json"])
+        self.assertEqual([row["title"] for row in json.loads(output.getvalue())], [" Bear ", "Moon"])
+
     def test_strict_health_fails_when_required_artifacts_are_missing(self):
         from cli.lib import config
         with tempfile.TemporaryDirectory() as directory:

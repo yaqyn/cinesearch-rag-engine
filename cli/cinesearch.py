@@ -120,6 +120,8 @@ def main(argv=None) -> None:
                                help="Exit unsuccessfully when no results match")
     search_parser.add_argument("--exclude-title", action="append", default=[],
                                help="Hide an exact movie title; repeatable and case-insensitive")
+    search_parser.add_argument("--unique-titles", action="store_true",
+                               help="Keep only the highest-ranked result for each normalized title")
     health_parser = subparsers.add_parser("health", help="Inspect local search artifacts")
     health_parser.add_argument("--json", action="store_true", help="Emit machine-readable health information")
     health_parser.add_argument("--strict", action="store_true",
@@ -172,6 +174,15 @@ def main(argv=None) -> None:
         results = [row for row in results if row["score"] >= args.min_score]
         excluded_titles = {title.strip().casefold() for title in args.exclude_title}
         results = [row for row in results if row["title"].strip().casefold() not in excluded_titles]
+        if args.unique_titles:
+            seen_titles = set()
+            unique_results = []
+            for row in results:
+                normalized_title = row["title"].strip().casefold()
+                if normalized_title not in seen_titles:
+                    seen_titles.add(normalized_title)
+                    unique_results.append(row)
+            results = unique_results
         if args.json or args.jsonl:
             rows = [row.get("raw", {"title": row["title"], "score": row["score"], "document": row["description"]}) for row in results]
             if args.jsonl:

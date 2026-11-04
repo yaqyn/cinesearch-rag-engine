@@ -116,6 +116,8 @@ def main(argv=None) -> None:
                                help="Emit one sanitized movie title per line")
     search_parser.add_argument("--min-score", type=nonnegative_score, default=0.0,
                                help="Hide results below this score")
+    search_parser.add_argument("--max-score", type=nonnegative_score,
+                               help="Hide results above this score")
     search_parser.add_argument("--require-results", action="store_true",
                                help="Exit unsuccessfully when no results match")
     search_parser.add_argument("--exclude-title", action="append", default=[],
@@ -172,6 +174,8 @@ def main(argv=None) -> None:
             results = search_catalog(args.query, args.mode, args.limit + args.offset)
         results = results[args.offset:]
         results = [row for row in results if row["score"] >= args.min_score]
+        if args.max_score is not None:
+            results = [row for row in results if row["score"] <= args.max_score]
         excluded_titles = {title.strip().casefold() for title in args.exclude_title}
         results = [row for row in results if row["title"].strip().casefold() not in excluded_titles]
         if args.unique_titles:

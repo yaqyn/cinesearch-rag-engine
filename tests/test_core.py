@@ -190,6 +190,15 @@ class CoreSearchTests(unittest.TestCase):
         with self.assertRaises(Exception):
             nonnegative_score("-0.1")
 
+    def test_search_can_filter_by_maximum_score(self):
+        rows = [
+            {"title": "Exact", "description": "strong", "score": 0.95},
+            {"title": "Related", "description": "useful", "score": 0.7},
+        ]
+        with patch("cli.cinesearch.search_catalog", return_value=rows), patch("sys.stdout", new_callable=io.StringIO) as output:
+            main(["search", "bear", "--mode", "keyword", "--max-score", "0.8", "--json"])
+        self.assertEqual([row["title"] for row in json.loads(output.getvalue())], ["Related"])
+
     def test_compact_search_emits_one_result_per_line(self):
         rows = [{"title": "Bear\nMovie", "description": "forest", "score": 0.75}]
         with patch("cli.cinesearch.search_catalog", return_value=rows), patch("sys.stdout", new_callable=io.StringIO) as output:

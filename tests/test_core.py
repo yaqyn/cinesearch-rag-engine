@@ -258,6 +258,15 @@ class CoreSearchTests(unittest.TestCase):
             main(["search", "adventure", "--mode", "keyword", "--unique-titles", "--json"])
         self.assertEqual([row["title"] for row in json.loads(output.getvalue())], [" Bear ", "Moon"])
 
+    def test_search_can_emit_only_the_match_count(self):
+        rows = [
+            {"title": "Bear", "description": "forest", "score": 0.9},
+            {"title": "Moon", "description": "space", "score": 0.8},
+        ]
+        with patch("cli.cinesearch.search_catalog", return_value=rows), patch("sys.stdout", new_callable=io.StringIO) as output:
+            main(["search", "adventure", "--mode", "keyword", "--count-only"])
+        self.assertEqual(output.getvalue(), "2\n")
+
     def test_strict_health_fails_when_required_artifacts_are_missing(self):
         from cli.lib import config
         with tempfile.TemporaryDirectory() as directory:

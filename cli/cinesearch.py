@@ -124,6 +124,8 @@ def main(argv=None) -> None:
                                help="Hide an exact movie title; repeatable and case-insensitive")
     search_parser.add_argument("--unique-titles", action="store_true",
                                help="Keep only the highest-ranked result for each normalized title")
+    search_parser.add_argument("--count-only", action="store_true",
+                               help="Emit only the number of matching results")
     health_parser = subparsers.add_parser("health", help="Inspect local search artifacts")
     health_parser.add_argument("--json", action="store_true", help="Emit machine-readable health information")
     health_parser.add_argument("--strict", action="store_true",
@@ -187,6 +189,9 @@ def main(argv=None) -> None:
                     seen_titles.add(normalized_title)
                     unique_results.append(row)
             results = unique_results
+        if args.count_only:
+            print(len(results))
+            return
         if args.json or args.jsonl:
             rows = [row.get("raw", {"title": row["title"], "score": row["score"], "document": row["description"]}) for row in results]
             if args.jsonl:

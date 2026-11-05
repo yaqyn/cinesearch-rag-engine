@@ -133,6 +133,8 @@ def main(argv=None) -> None:
     health_parser.add_argument("--json", action="store_true", help="Emit machine-readable health information")
     health_parser.add_argument("--strict", action="store_true",
                                help="Exit unsuccessfully when the dataset or index artifacts are missing")
+    health_parser.add_argument("--rebuild", action="store_true",
+                               help="Rebuild keyword-search artifacts before reporting health")
     args = parser.parse_args(argv)
     if args.command is None or args.command == "browse":
         if args.command == "browse" and args.plain:
@@ -146,6 +148,12 @@ def main(argv=None) -> None:
         return
     if args.command == "health":
         from cli.lib.config import CACHE_DIR, DOC_LENGTHS_PATH, DOCMAP_PATH, INDEX_PATH, MOVIES_PATH, TERM_FREQUENCIES_PATH
+        if args.rebuild:
+            from cli.inverted_index import InvertedIndex
+            search = InvertedIndex()
+            search.build()
+            search.save()
+            _keyword_index.cache_clear()
         artifacts = sorted(path.name for path in CACHE_DIR.glob("*")) if CACHE_DIR.exists() else []
         required = (INDEX_PATH, DOCMAP_PATH, TERM_FREQUENCIES_PATH, DOC_LENGTHS_PATH)
         missing_artifacts = [path.name for path in required if not path.is_file()]

@@ -4,7 +4,7 @@ import json
 import tempfile
 from pathlib import Path
 from contextlib import redirect_stderr, redirect_stdout
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from cli.cinesearch import main, nonnegative_score
 
 from cli.inverted_index import tokenize_text
@@ -98,6 +98,15 @@ class CoreSearchTests(unittest.TestCase):
             set(report["missing_artifacts"]),
             {"index.pkl", "docmap.pkl", "term_frequencies.pkl", "doc_lengths.pkl"},
         )
+
+    def test_health_can_rebuild_keyword_artifacts(self):
+        search = Mock()
+        with patch("cli.inverted_index.InvertedIndex", return_value=search), patch(
+            "cli.lib.config.CACHE_DIR", Path("/missing-cache")
+        ), patch("builtins.print"):
+            main(["health", "--rebuild"])
+        search.build.assert_called_once_with()
+        search.save.assert_called_once_with()
 
     def test_result_previews_preserve_words_and_normalize_whitespace(self):
         document = "A   short\nsummary " + "cinema " * 20

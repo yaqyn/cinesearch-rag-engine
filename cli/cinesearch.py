@@ -124,6 +124,9 @@ def main(argv=None) -> None:
                                help="Hide an exact movie title; repeatable and case-insensitive")
     search_parser.add_argument("--unique-titles", action="store_true",
                                help="Keep only the highest-ranked result for each normalized title")
+    search_parser.add_argument("--sort", choices=("relevance", "title", "title-desc"),
+                               default="relevance",
+                               help="Order matching results by relevance or movie title")
     search_parser.add_argument("--count-only", action="store_true",
                                help="Emit only the number of matching results")
     health_parser = subparsers.add_parser("health", help="Inspect local search artifacts")
@@ -189,6 +192,11 @@ def main(argv=None) -> None:
                     seen_titles.add(normalized_title)
                     unique_results.append(row)
             results = unique_results
+        if args.sort in {"title", "title-desc"}:
+            results.sort(
+                key=lambda row: (row["title"].strip().casefold(), -row["score"]),
+                reverse=args.sort == "title-desc",
+            )
         if args.count_only:
             print(len(results))
             return

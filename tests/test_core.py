@@ -3,7 +3,7 @@ import io
 import json
 import tempfile
 from pathlib import Path
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 from unittest.mock import patch
 from cli.cinesearch import main, nonnegative_score
 
@@ -14,6 +14,15 @@ from cli.lib.search_utils import document_preview
 
 
 class CoreSearchTests(unittest.TestCase):
+    def test_search_results_can_be_sorted_by_title(self):
+        rows = [
+            {"title": "Zebra", "description": "last", "score": 0.9},
+            {"title": "alpha", "description": "first", "score": 0.4},
+        ]
+        with patch("cli.cinesearch.search_catalog", return_value=rows), redirect_stdout(io.StringIO()) as output:
+            main(["search", "movie", "--mode", "keyword", "--titles-only", "--sort", "title"])
+        self.assertEqual(output.getvalue().splitlines(), ["alpha", "Zebra"])
+
     def test_keyword_search_rebuilds_an_incomplete_index(self):
         from cli.cinesearch import _keyword_index, search_catalog
         from cli.inverted_index import InvertedIndex

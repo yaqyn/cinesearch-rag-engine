@@ -15,6 +15,7 @@ DATASET_URL = (
     "https://storage.googleapis.com/qvault-webapp-dynamic-assets/"
     "course_assets/movies.json?generation=1759751668026541"
 )
+MAX_DATASET_BYTES = 64 * 1024 * 1024
 
 
 def validate_dataset(payload):
@@ -42,7 +43,13 @@ def download_dataset(destination: Path):
         with tempfile.NamedTemporaryFile(dir=destination.parent, suffix=".download", delete=False) as output:
             temporary = Path(output.name)
             with urllib.request.urlopen(DATASET_URL, timeout=60) as response:
+                downloaded_bytes = 0
                 while chunk := response.read(1024 * 1024):
+                    downloaded_bytes += len(chunk)
+                    if downloaded_bytes > MAX_DATASET_BYTES:
+                        raise ValueError(
+                            f"Downloaded dataset exceeds the {MAX_DATASET_BYTES // (1024 * 1024)} MiB limit."
+                        )
                     output.write(chunk)
         with temporary.open(encoding="utf-8") as source:
             payload = json.load(source)

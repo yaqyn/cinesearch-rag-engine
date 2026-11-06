@@ -17,6 +17,24 @@ DATASET_URL = (
 )
 
 
+def validate_dataset(payload):
+    """Return a validated movie list from a downloaded or local catalog."""
+    movies = payload.get("movies") if isinstance(payload, dict) else None
+    if not isinstance(movies, list) or not movies or any(
+        not isinstance(movie, dict)
+        or not isinstance(movie.get("id"), int)
+        or not isinstance(movie.get("title"), str)
+        or not movie.get("title", "").strip()
+        or not isinstance(movie.get("description"), str)
+        for movie in movies
+    ):
+        raise ValueError("Movie dataset must contain movie IDs, titles, and descriptions.")
+    movie_ids = [movie["id"] for movie in movies]
+    if len(movie_ids) != len(set(movie_ids)):
+        raise ValueError("Movie dataset must contain unique movie IDs.")
+    return movies
+
+
 def download_dataset(destination: Path):
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
@@ -28,19 +46,7 @@ def download_dataset(destination: Path):
                     output.write(chunk)
         with temporary.open(encoding="utf-8") as source:
             payload = json.load(source)
-        movies = payload.get("movies") if isinstance(payload, dict) else None
-        if not isinstance(movies, list) or not movies or any(
-            not isinstance(movie, dict)
-            or not isinstance(movie.get("id"), int)
-            or not isinstance(movie.get("title"), str)
-            or not movie.get("title", "").strip()
-            or not isinstance(movie.get("description"), str)
-            for movie in movies
-        ):
-            raise ValueError("Downloaded dataset must contain movie IDs, titles, and descriptions.")
-        movie_ids = [movie["id"] for movie in movies]
-        if len(movie_ids) != len(set(movie_ids)):
-            raise ValueError("Downloaded dataset must contain unique movie IDs.")
+        validate_dataset(payload)
         temporary.replace(destination)
     finally:
         if temporary is not None:
@@ -52,6 +58,12 @@ def main():
     if downloaded:
         print("Downloading the Boot.dev movie catalog…", file=sys.stderr)
         download_dataset(MOVIES_PATH)
+    else:
+        try:
+            with MOVIES_PATH.open(encoding="utf-8") as source:
+                validate_dataset(json.load(source))
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Movie dataset is not valid JSON: {exc.msg}.") from exc
     artifacts = (INDEX_PATH, DOCMAP_PATH, TERM_FREQUENCIES_PATH, DOC_LENGTHS_PATH)
     if downloaded or not all(path.exists() for path in artifacts):
         from cli.inverted_index import InvertedIndex

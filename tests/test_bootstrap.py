@@ -45,8 +45,20 @@ class BootstrapTests(unittest.TestCase):
     def test_existing_data_and_complete_index_are_reused(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "existing"
-            target.touch()
+            target.write_text(json.dumps({
+                "movies": [{"id": 1, "title": "Film", "description": "Story"}],
+            }))
             with patch.multiple("cli.bootstrap", MOVIES_PATH=target, INDEX_PATH=target,
                                 DOCMAP_PATH=target, TERM_FREQUENCIES_PATH=target, DOC_LENGTHS_PATH=target), patch("cli.bootstrap.download_dataset") as download:
                 main()
                 download.assert_not_called()
+
+    def test_existing_invalid_data_is_rejected_even_with_complete_index(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "existing"
+            target.write_text('{"movies": []}')
+            with patch.multiple("cli.bootstrap", MOVIES_PATH=target, INDEX_PATH=target,
+                                DOCMAP_PATH=target, TERM_FREQUENCIES_PATH=target,
+                                DOC_LENGTHS_PATH=target):
+                with self.assertRaisesRegex(ValueError, "Movie dataset"):
+                    main()

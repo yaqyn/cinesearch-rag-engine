@@ -42,6 +42,18 @@ class BootstrapTests(unittest.TestCase):
                         download_dataset(target)
                     self.assertEqual(json.loads(target.read_text())["movies"][0]["title"], "Saved")
 
+    def test_download_rejects_oversized_catalog_without_replacing_saved_data(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "movies.json"
+            target.write_text('{"movies": [{"id": 9, "title": "Saved", "description": "Keep"}]}')
+            with patch("cli.bootstrap.MAX_DATASET_BYTES", 10), patch(
+                "cli.bootstrap.urllib.request.urlopen", return_value=io.BytesIO(b"x" * 11)
+            ):
+                with self.assertRaisesRegex(ValueError, "exceeds the 0 MiB limit"):
+                    download_dataset(target)
+            self.assertEqual(json.loads(target.read_text())["movies"][0]["title"], "Saved")
+            self.assertEqual(list(target.parent.glob("*.download")), [])
+
     def test_existing_data_and_complete_index_are_reused(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "existing"
